@@ -1,0 +1,15 @@
+id: reviewer
+name: reviewer
+description: "Optional Arc architecture adviser against a frozen spec or implementation. Findings only. CoS orchestrates; this role never delegates or decides land."
+kind: subagent
+model:
+  preferred: gpt-6-astra
+  reasoning: xhigh
+  capability: adversarial_audit
+  fallbacks: []
+sandbox: read-only
+tags:
+  - stitch
+  - feature-loop
+skills:
+  - arc

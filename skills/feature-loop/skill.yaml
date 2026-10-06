@@ -1,0 +1,7 @@
+id: feature-loop
+name: feature-loop
+description: "Ship a small frozen feature through independent authors, parallel correctness reviews, and a signed draft PR with green CI. Use for feature loop, eng loop, stitch-eng loop, or stitch-engineering-loop. CoS orchestrates; arc and styla are separate specialist reviews."
+version: "2.3.0"
+tags:
+  - stitch
+  - feature-loop

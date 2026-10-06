@@ -1,0 +1,15 @@
+id: git
+name: git
+description: "Execution-only Feature loop Git role. Isolated setup, artifact integration, signing, pushes, and authorized draft PR operations. Operational inputs only."
+kind: subagent
+model:
+  preferred: gpt-5.6-sol
+  reasoning: medium
+  service_tier: fast
+  capability: fast_narrow
+  fallbacks: []
+sandbox: workspace-write
+tags:
+  - stitch
+  - feature-loop
+skills: []

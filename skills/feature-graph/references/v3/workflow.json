@@ -1,0 +1,130 @@
+{
+  "version": 3,
+  "nodes": {
+    "prepare": {
+      "owner": "cos",
+      "needs": []
+    },
+    "tests": {
+      "owner": "test_writer",
+      "needs": [
+        "prepare"
+      ],
+      "parallel": true
+    },
+    "seal_tests": {
+      "owner": "cos",
+      "needs": [
+        "tests"
+      ],
+      "parallel": true
+    },
+    "plan": {
+      "owner": "implementer",
+      "needs": [
+        "prepare"
+      ],
+      "parallel": true
+    },
+    "implement": {
+      "owner": "implementer",
+      "needs": [
+        "plan"
+      ],
+      "parallel": true
+    },
+    "seal_implementation": {
+      "owner": "cos",
+      "needs": [
+        "implement"
+      ],
+      "parallel": true
+    },
+    "capture": {
+      "owner": "cos",
+      "needs": [
+        "seal_tests",
+        "seal_implementation"
+      ]
+    },
+    "checks": {
+      "owner": "cos",
+      "needs": [
+        "capture"
+      ],
+      "snapshot": true,
+      "parallel": true
+    },
+    "verification": {
+      "owner": "slice_spec_audit",
+      "needs": [
+        "capture"
+      ],
+      "snapshot": true,
+      "parallel": true
+    },
+    "regression": {
+      "owner": "researcher",
+      "needs": [
+        "capture"
+      ],
+      "snapshot": true,
+      "parallel": true
+    },
+    "arc": {
+      "owner": "csa",
+      "needs": [
+        "capture"
+      ],
+      "snapshot": true,
+      "parallel": true
+    },
+    "styla": {
+      "owner": "styla",
+      "needs": [
+        "capture"
+      ],
+      "snapshot": true,
+      "parallel": true
+    },
+    "reconcile": {
+      "owner": "cos",
+      "needs": [
+        "checks",
+        "verification",
+        "regression",
+        "arc",
+        "styla"
+      ],
+      "snapshot": true
+    },
+    "publish": {
+      "owner": "git",
+      "needs": [
+        "reconcile"
+      ],
+      "snapshot": true
+    },
+    "ci": {
+      "owner": "cos",
+      "needs": [
+        "publish"
+      ],
+      "snapshot": true
+    },
+    "handoff": {
+      "owner": "cos",
+      "needs": [
+        "ci"
+      ],
+      "snapshot": true
+    },
+    "closeout": {
+      "owner": "cos",
+      "needs": [
+        "handoff"
+      ],
+      "snapshot": true
+    }
+  }
+}

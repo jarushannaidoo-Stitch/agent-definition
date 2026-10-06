@@ -1,0 +1,40 @@
+# Local / machine-only
+.DS_Store
+**/.DS_Store
+*.bak
+*.bak.*
+*.agentpack-bak-*
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Secrets and env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa*
+credentials*
+**/secrets/
+
+# Personal model profiles (onboard-models writes these locally)
+profiles/personal.yaml
+profiles/personal-*.yaml
+profiles/.active/
+profiles/.active
+
+# Local delivery evidence (large; may contain secrets / .env)
+evidence/
+
+# Optional local scratch
+.repositories-cache/
+*.local.yaml
+*.local.toml
+
+# Editor / tooling
+.idea/
+.vscode/
+*.swp
+*~

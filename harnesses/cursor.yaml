@@ -1,0 +1,16 @@
+name: cursor
+display_name: "Cursor"
+builtin: true
+skills:
+  out_env: CURSOR_SKILLS_OUT
+  out_default: .cursor/skills
+  shape: skill_md
+agents:
+  export: false
+profile:
+  shipping: cursor
+  env: CURSOR_PROFILE
+model_discovery:
+  - kind: pstack_mdc
+    path: .cursor/rules/pstack-models.mdc
+  - kind: codex_cache

@@ -1,0 +1,6 @@
+id: onboard-models
+name: "onboard-models"
+description: "Use when the user says 'run onboarding', 'run onboard-models', 'onboard', 'onboard this pack', 'onboard me', 'set up models', 'set up my models', 'pick my models', 'choose models', 'change my models', 'switch models', 'configure models' or 'model setup'. Agent-led setup for the agent-definition pack: finds the pack, detects the harness, lists the models that harness can use, asks the user to pick one per capability, writes and activates a personal profile, and re-exports skills. The user never needs pack paths or shell flags."
+when: "Any request to onboard, set up, pick, change or reset the models the agent-definition pack uses, in any harness (Codex, Cursor, Claude Code, Grok Bot, Pi, Hermes or a newly registered one). Also when a capability is unbound or the user asks why a role runs on a given model."
+version: "2.0.0"
+tags: [onboarding, profiles, models, setup]

@@ -1,0 +1,7 @@
+id: feature-graph
+name: feature-graph
+description: "Deliver a frozen feature through a guarded dependency graph, parallel independent authors in one worktree, mandatory verification and specialist reviews, and an approved local or signed draft endpoint. Use when the user selects feature graph, feature-graph, feeature graph, or the dag alias (for example, impl with dag), with one dedicated CoS per run and Main as the user-facing supervisor."
+version: "5.0.1"
+tags:
+  - delivery
+  - workflow

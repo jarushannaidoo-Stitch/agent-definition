@@ -1,0 +1,4 @@
+# Root-session model, reasoning and service tier moved to the `main:` block
+# of profiles/codex.yaml (Phase 2). The exporter derives model,
+# model_reasoning_effort, service_tier and [features].fast_mode from it.
+# Add other owned root-session keys here if ever needed.

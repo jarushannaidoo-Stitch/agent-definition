@@ -1,0 +1,15 @@
+id: slice-spec-audit
+name: slice_spec_audit
+description: "Independent spec, implementation, test-validity and execution audit. Feature graph verification traces the feature from first principles. Findings only; no source edits."
+kind: subagent
+model:
+  preferred: gpt-6-astra
+  reasoning: xhigh
+  capability: adversarial_audit
+  fallbacks: []
+sandbox: workspace-write
+tags:
+  - stitch
+  - feature-loop
+  - feature-graph
+skills: []

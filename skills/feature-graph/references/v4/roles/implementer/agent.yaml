@@ -1,0 +1,15 @@
+id: implementer
+name: implementer
+description: "Independent Feature loop implementer. Frozen spec and baseline only on first attempt. Owns the smallest service change; no test edits or PRs."
+kind: subagent
+model:
+  preferred: gpt-5.6-sol
+  reasoning: medium
+  service_tier: fast
+  capability: implement
+  fallbacks: []
+sandbox: workspace-write
+tags:
+  - stitch
+  - feature-loop
+skills: []

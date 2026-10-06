@@ -1,0 +1,27 @@
+# Pi coding agent binding profile "pi" (shipping stub).
+# Pi picks models via /model and ~/.pi/agent/settings.json + models.json.
+# Bindings here record intent for the pack; onboard-models writes personal overrides.
+# Multi-vendor is fine. Stitch-strict delivery stays on profiles/codex.yaml.
+profile: pi
+harness: pi
+description: "Pi coding agent skills. Strict capability map; models often provider/id from Pi catalog."
+strict: true
+
+main:
+  model: inherit-parent
+
+capabilities:
+  orchestrator:
+    model: inherit-parent
+  adversarial_audit:
+    model: inherit-parent
+  taste:
+    model: inherit-parent
+  verify:
+    model: inherit-parent
+  implement:
+    model: inherit-parent
+  fast_narrow:
+    model: inherit-parent
+
+roles: {}

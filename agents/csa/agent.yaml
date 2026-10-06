@@ -1,0 +1,12 @@
+id: csa
+name: csa
+description: "Arc architecture reviewer, retained under the csa spawn name. Frozen spec and identified artifact only. Ownership, contracts, dependencies, and fail-closed findings."
+kind: subagent
+model:
+  capability: adversarial_audit
+sandbox: read-only
+tags:
+  - stitch
+  - feature-loop
+skills:
+  - arc

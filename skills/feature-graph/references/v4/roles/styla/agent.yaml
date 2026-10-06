@@ -1,0 +1,16 @@
+id: styla
+name: styla
+description: "Independent house-style reviewer using Styla. Naming, responsibility, file structure, and idiom. Findings only; no patches or orchestration."
+kind: subagent
+model:
+  preferred: gpt-6-astra
+  reasoning: medium
+  service_tier: fast
+  capability: taste
+  fallbacks: []
+sandbox: read-only
+tags:
+  - stitch
+  - feature-loop
+skills:
+  - styla

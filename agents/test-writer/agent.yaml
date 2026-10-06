@@ -1,0 +1,11 @@
+id: test-writer
+name: test_writer
+description: "Independent behavior-first test-writer. Favors end-to-end user journeys and proves tests reject wrong behavior. Frozen spec and permitted baseline only; owns tests and test-only helpers, no service code or PRs."
+kind: subagent
+model:
+  capability: implement
+sandbox: workspace-write
+tags:
+  - stitch
+  - feature-loop
+skills: []

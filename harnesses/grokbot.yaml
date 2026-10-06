@@ -1,0 +1,14 @@
+name: grokbot
+display_name: "Grok Bot"
+builtin: true
+skills:
+  out_env: GROKBOT_SKILLS_OUT
+  out_default: agents/grokbot-skills
+  shape: skill_md
+agents:
+  export: false
+profile:
+  shipping: grokbot
+  env: GROKBOT_PROFILE
+model_discovery:
+  - kind: inherit

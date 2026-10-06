@@ -1,0 +1,14 @@
+id: verifier
+name: verifier
+description: "Optional focused check execution or environment diagnosis. Routine verification belongs to the acceptance reviewer. No source or test edits."
+kind: subagent
+model:
+  preferred: gpt-6-astra
+  reasoning: xhigh
+  capability: verify
+  fallbacks: []
+sandbox: workspace-write
+tags:
+  - stitch
+  - feature-loop
+skills: []

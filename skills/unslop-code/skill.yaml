@@ -1,0 +1,5 @@
+id: unslop-code
+name: "Unslop code"
+description: "use this when Styla or unslop is judging or rewriting code (not prose) for house style: readable names, SRP, OOP class methods, representative file names, file splits, enum case"
+version: "1.1.0"
+tags: []

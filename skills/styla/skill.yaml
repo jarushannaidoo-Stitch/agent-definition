@@ -1,0 +1,7 @@
+id: styla
+name: styla
+description: "Independent house-style review of code: naming, readability, responsibility, file structure, idiom, and established patterns. Use for styla, a style review, or substantial new structure needing a taste judgment. Findings only; no automatic rewrite or architecture review."
+version: "1.1.1"
+tags:
+  - stitch
+  - review

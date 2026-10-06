@@ -1,0 +1,31 @@
+# Grok Bot binding profile "grokbot" (sand-workflow skills).
+# Grok Bot chooses models itself: each agent's model is set in the Grok Bot
+# app's agent settings, and subagents run on what the harness picks. The pack
+# cannot pin a model there, so every capability binds to "inherit-parent"
+# (the harness chooses). The export is skills-only; this profile exists so a
+# strict resolution still proves every role's capability is mapped, and the
+# result is recorded in the export's .agentpack-resolved sidecar.
+#
+# To pin concrete Grok Bot model ids later, replace inherit-parent with the id
+# Grok Bot shows in its model picker, one capability at a time. Never copy ids
+# from memory or older notes; use what the live Grok Bot settings list.
+profile: grokbot
+harness: grokbot
+description: "Grok Bot sand-workflow skills. Strict: every capability mapped; models chosen in Grok Bot agent settings."
+strict: true
+
+capabilities:
+  orchestrator:
+    model: inherit-parent
+  adversarial_audit:
+    model: inherit-parent
+  taste:
+    model: inherit-parent
+  verify:
+    model: inherit-parent
+  implement:
+    model: inherit-parent
+  fast_narrow:
+    model: inherit-parent
+
+roles: {}

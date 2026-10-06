@@ -1,0 +1,7 @@
+id: dag
+name: dag
+description: "Alias for feature-graph. Use when the user selects dag as their delivery workflow, including dag, $dag, or phrases such as impl with dag. General questions about DAG theory do not authorize implementation."
+version: "2.0.0"
+tags:
+  - delivery
+  - alias

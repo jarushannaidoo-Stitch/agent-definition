@@ -1,0 +1,43 @@
+# Copy this file to harnesses/<name>.yaml (no leading underscore) to register
+# a new harness (pi, hermes, ...). Then:
+#   1. Add a <name>: row under every verb in adapters/tool-map.yaml (and leaks if needed).
+#   2. Optionally add profiles/<name>.yaml shipping defaults (or rely on onboard-models).
+#   3. Run: ./adapters/onboard-models.sh --harness <name>
+#   4. Export: python3 adapters/lib/agentpack.py <name>
+#      (or copy adapters/export-claude.sh to export-<name>.sh and change the harness arg)
+# Names must be lowercase [a-z][a-z0-9_]* and match "## Harness notes: <name>".
+name: example
+display_name: "Example harness"
+# false = skills-only generic exporter (same SKILL.md shape as Cursor/Claude/Grok Bot).
+# true = built into agentpack.py with special logic (codex, cursor only today).
+builtin: false
+skills:
+  out_env: EXAMPLE_SKILLS_OUT
+  # Path relative to $HOME unless absolute.
+  out_default: agents/example-skills
+  # Only skill_md (name+description frontmatter + BODY) is supported today.
+  shape: skill_md
+agents:
+  export: false
+profile:
+  # Shipping profile file stem under profiles/ (optional; onboard can create personal).
+  shipping: example
+  # Env var selecting profiles/<name>.yaml. Codex alone uses AGENTPACK_PROFILE.
+  env: EXAMPLE_PROFILE
+model_discovery:
+  # Tried in order. Always falls back to free-text with a warning.
+  # kind values: static | command_json | codex_cache | claude_catalog | pstack_mdc | inherit
+  - kind: static
+    models:
+      - id: example-model
+        name: "Example model"
+        efforts: [low, medium, high]
+  # - kind: command_json
+  #   # argv; {HOME} expanded. Expect JSON with a list at json_path (dot path).
+  #   command: ["examplectl", "models", "--json"]
+  #   json_path: models
+  #   id_key: id
+  #   name_key: name
+  #   efforts_key: supported_efforts
+  # - kind: inherit
+  #   # Offer inherit-parent (harness picks). Good for Grok Bot-style hosts.

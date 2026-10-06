@@ -1,0 +1,5 @@
+id: repo-spec-audit
+name: "Repo spec audit"
+description: "use this when the user names a repo and wants an unbiased audit against its full spec: fetch the spec, dispatch a blank agent on the active profile's adversarial_audit binding with no HQ context, report only with /10 ratings and gap explanations, do not implement"
+version: "1.0.0"
+tags: []

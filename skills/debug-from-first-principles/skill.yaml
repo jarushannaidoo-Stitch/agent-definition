@@ -1,0 +1,5 @@
+id: debug-from-first-principles
+name: "Debug from first principles"
+description: "Diagnose bugs, failing tests and repair loops from real code paths, runtime setup and evidence. Delivery subagents execute it; the verifier leads repair loops and CoS only coordinates. Preserve role boundaries; fix only within existing or new implementation authority."
+version: "1.1.2"
+tags: []

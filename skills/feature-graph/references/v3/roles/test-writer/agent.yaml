@@ -1,0 +1,15 @@
+id: test-writer
+name: test_writer
+description: "Independent Feature loop test-writer. Frozen spec and baseline only on first attempt. Owns tests and test-only helpers; no service code or PRs."
+kind: subagent
+model:
+  preferred: gpt-6-sol
+  reasoning: high
+  service_tier: fast
+  capability: implement
+  fallbacks: []
+sandbox: workspace-write
+tags:
+  - stitch
+  - feature-loop
+skills: []

@@ -1,0 +1,126 @@
+# Harness-neutral tool verbs used in skill bodies, and the concrete tool each
+# harness provides for them. Documented in SCHEMA.md, "Tool references in
+# skills". Skill "## Harness notes: <harness>" sections must agree with this
+# file. adapters/lib/agentpack.py validates it and runs the leak lint below on
+# every export and --check.
+schema_version: 1
+
+verbs:
+  spawn_subagent:
+    meaning: "Start a fresh subagent from a standalone brief, with the role, model, access, background and environment the step names."
+    codex: "spawn_agent with agent_type (a pack role, or default for general-purpose), fork_turns none, task_name, message (the brief), model and reasoning_effort (omit both to inherit). No read-only flag (state it in the brief) and no cloud environment; spawned agents run concurrently."
+    cursor: "Task with subagent_type (generalPurpose or a plugin role such as poteto-agent), description, prompt (the brief), model (omit to inherit), readonly true for read-only (strips MCP), run_in_background, environment local or cloud, cloud_base_branch."
+    grokbot: "Task with the subagent type (executor for general-purpose work; computerUse or browser subagents for desktop and web) and the brief as the prompt. Model comes from Grok Bot agent settings; a per-call model, read-only flag, background mode and cloud environment are TBD (state read-only in the brief). A subagent cannot talk to the user; only its final message returns."
+    claude: "Agent (or Task) with description, prompt (the brief), and model (omit to inherit). Read-only and background flags TBD; state read-only in the brief. Exact subagent_type names TBD."
+    pi: "TBD: Pi subagent / extension spawn (extensions under ~/.pi/agent/extensions). Prefer stating the brief and model in the skill until the Pi Agent API is confirmed. Model via /model or settings."
+    hermes: "TBD: Hermes subagent or delegated run. State the brief and desired model in the prompt; confirm against live hermes CLI help when installed."
+  await_subagents:
+    meaning: "Collect spawned subagents' results as each finishes."
+    codex: "wait_agent with timeout_ms until every spawned agent has reported; list_agents shows status."
+    cursor: "A foreground Task returns its result; background Task results arrive as completion notifications."
+    grokbot: "A Task returns the subagent final message as its result; a subagent can also wake the parent early with WakeParent. Background completion notifications TBD."
+    claude: "A foreground Agent returns its result; background completion TBD."
+    pi: "TBD: await / join for Pi subagents when the spawn API is confirmed."
+    hermes: "TBD: await Hermes delegated runs when the CLI/API is confirmed."
+  message_subagent:
+    meaning: "Send a follow-up, correction or resume to an existing subagent."
+    codex: "followup_task or send_message with target and message; interrupt_agent stops a running agent."
+    cursor: "Task with resume (the agent id) and a new prompt; add interrupt true to redirect a running agent."
+    grokbot: "TBD: no confirmed tool to resume or redirect a finished subagent; launch a fresh Task with the prior result in the brief. SendToAgent messages teammate agents (not subagents)."
+    claude: "TBD: resume or redirect an existing Agent; otherwise launch a fresh Agent with prior result in the brief."
+    pi: "TBD: message or resume a Pi subagent; otherwise launch fresh with prior context in the brief."
+    hermes: "TBD: message or resume a Hermes subagent; otherwise launch fresh with prior context in the brief."
+  ask_user:
+    meaning: "Ask the human a structured question and wait for the answer."
+    codex: "request_user_input_async with title and questions (each with options)."
+    cursor: "AskQuestion with title and questions (each with options)."
+    grokbot: "SendToUser with a question widget (ends the turn; the answer resumes it). Subagents cannot ask; they report the question in their final message. Exact widget payload TBD."
+    claude: "AskUserQuestion (or the interactive prompt in Claude Code). Exact schema TBD if the tool name differs by version."
+    pi: "TBD: Pi interactive question / TUI prompt. Fall back to a plain user message until confirmed."
+    hermes: "TBD: Hermes interactive question. Fall back to a plain user message until confirmed."
+  search_files:
+    meaning: "Find files by name pattern or search file contents."
+    codex: "exec_command running rg --files (names) or rg (contents)."
+    cursor: "Glob (names) or Grep (contents)."
+    grokbot: "Shell running rg --files (names) or rg (contents); pass machineId to search a registered user computer instead of the box."
+    claude: "Glob (names) or Grep (contents)."
+    pi: "TBD: Pi file search tools (likely glob/grep via bash). Prefer bash rg until confirmed."
+    hermes: "TBD: Hermes file search. Prefer shell rg until confirmed."
+  read_file:
+    meaning: "Read a file's contents."
+    codex: "exec_command running sed -n or cat."
+    cursor: "Read."
+    grokbot: "Read (pass machineId for a registered user computer; images and PDFs supported)."
+    claude: "Read."
+    pi: "read tool (Pi coding agent); bash cat/sed as fallback."
+    hermes: "TBD: Hermes read tool or shell cat/sed."
+  edit_file:
+    meaning: "Create or change a file."
+    codex: "apply_patch."
+    cursor: "StrReplace (edit) or Write (new or replaced file)."
+    grokbot: "Shell writing the file (heredoc or a short script); pass machineId for a user computer. A dedicated edit tool is TBD."
+    claude: "Edit or Write."
+    pi: "edit / write tools (Pi coding agent)."
+    hermes: "TBD: Hermes edit/write tools or shell redirects."
+  run_command:
+    meaning: "Run a shell command."
+    codex: "exec_command (write_stdin continues an interactive session)."
+    cursor: "Shell."
+    grokbot: "Shell (machineId targets a registered user computer; block_until_ms 0 backgrounds it and AwaitShell polls it)."
+    claude: "Bash."
+    pi: "bash tool (Pi coding agent)."
+    hermes: "TBD: Hermes shell/terminal tool; hermes CLI for skill management."
+
+# Harness tool names and parameters that must not appear in skill text outside
+# a matching "## Harness notes: <harness>" section. Python regexes, unquoted
+# (the pack YAML subset keeps backslashes verbatim; \x60 is a backtick).
+leaks:
+  cursor:
+    - \x60Task\x60
+    - \bTask (tool|tools|call|calls|subagent|subagents|schema)\b
+    - \bsubagent_type\b
+    - \brun_in_background\b
+    - \breadonly\b
+    - \bcloud_base_branch\b
+    - \bAskQuestion\b
+    - \bTodoWrite\b
+    - \bStrReplace\b
+    - \bSemanticSearch\b
+    - \b(Glob|Grep)\b
+  grokbot:
+    - \bListMachines\b
+    - \bAwaitShell\b
+    - \bSendToUser\b
+    - \bSendToAgent\b
+    - \bWakeParent\b
+    - \b(Call|Get)DynamicTool(s)?\b
+    - \bCopy(To|From)Box\b
+    - \bmachineId\b
+    - \brequest_smart_mode_approval\b
+  codex:
+    - \bspawn_agent\b
+    - \bwait_agent\b
+    - \bfollowup_task\b
+    - \binterrupt_agent\b
+    - \blist_agents\b
+    - \bfork_turns\b
+    - \bagent_type\b
+    - \brequest_user_input
+    - \bapply_patch\b
+    - \bexec_command\b
+
+  claude:
+    - \bAskUserQuestion\b
+    - \bMultiEdit\b
+  pi:
+    - \bPI_CODING_AGENT_DIR\b
+  hermes:
+    - \bhermes skills\b
+    - \bAPI_SERVER_KEY\b
+
+lint:
+  # Skills with known leaks still to neutralize: reported as pending, not drift.
+  # A listed skill that is already clean is drift, so the list cannot go stale.
+  pending: []
+  # Paths under skills/ never linted: archived saved-run workflows that must not migrate.
+  exempt: [feature-graph/references/v1, feature-graph/references/v2, feature-graph/references/v3, feature-graph/references/v4]

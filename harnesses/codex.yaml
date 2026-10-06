@@ -1,0 +1,21 @@
+name: codex
+display_name: "Codex"
+builtin: true
+skills:
+  out_env: AGENTS_SKILLS_OUT
+  out_default: .agents/skills
+  shape: skill_md
+agents:
+  export: true
+profile:
+  shipping: codex
+  env: AGENTPACK_PROFILE
+model_discovery:
+  - kind: codex_cache
+  - kind: command_json
+    command: ["codex", "debug", "models"]
+    json_path: models
+    id_key: slug
+    name_key: display_name
+    efforts_path: supported_reasoning_levels
+    effort_id_key: effort

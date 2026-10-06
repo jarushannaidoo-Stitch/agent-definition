@@ -1,0 +1,7 @@
+id: arc
+name: arc
+description: "Independent architecture review of a frozen spec and optional implementation. Use for arc, CSA review, or changes to ownership, dependency direction, public contracts, security boundaries, or fail-closed behavior. Advisory findings only; no implementation or orchestration."
+version: "1.1.0"
+tags:
+  - stitch
+  - review

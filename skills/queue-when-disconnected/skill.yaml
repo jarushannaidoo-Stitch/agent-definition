@@ -1,0 +1,5 @@
+id: queue-when-disconnected
+name: "queue-when-disconnected"
+description: "use this when a git/PR sign, push, or draft PR needs the user's laptop and it is disconnected: queue and retry instead of skipping"
+version: "1.0.0"
+tags: []

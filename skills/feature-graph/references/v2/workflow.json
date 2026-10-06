@@ -1,0 +1,123 @@
+{
+  "version": 2,
+  "nodes": {
+    "prepare": {
+      "owner": "cos",
+      "needs": []
+    },
+    "tests": {
+      "owner": "test_writer",
+      "needs": [
+        "prepare"
+      ]
+    },
+    "seal_tests": {
+      "owner": "cos",
+      "needs": [
+        "tests"
+      ]
+    },
+    "plan": {
+      "owner": "implementer",
+      "needs": [
+        "seal_tests"
+      ]
+    },
+    "implement": {
+      "owner": "implementer",
+      "needs": [
+        "plan"
+      ]
+    },
+    "seal_implementation": {
+      "owner": "cos",
+      "needs": [
+        "implement"
+      ]
+    },
+    "capture": {
+      "owner": "cos",
+      "needs": [
+        "seal_tests",
+        "seal_implementation"
+      ]
+    },
+    "checks": {
+      "owner": "cos",
+      "needs": [
+        "capture"
+      ],
+      "snapshot": true
+    },
+    "verification": {
+      "owner": "slice_spec_audit",
+      "needs": [
+        "checks"
+      ],
+      "snapshot": true,
+      "parallel": true
+    },
+    "regression": {
+      "owner": "researcher",
+      "needs": [
+        "checks"
+      ],
+      "snapshot": true,
+      "parallel": true
+    },
+    "arc": {
+      "owner": "csa",
+      "needs": [
+        "checks"
+      ],
+      "snapshot": true,
+      "parallel": true
+    },
+    "styla": {
+      "owner": "styla",
+      "needs": [
+        "checks"
+      ],
+      "snapshot": true,
+      "parallel": true
+    },
+    "reconcile": {
+      "owner": "cos",
+      "needs": [
+        "verification",
+        "regression",
+        "arc",
+        "styla"
+      ],
+      "snapshot": true
+    },
+    "publish": {
+      "owner": "git",
+      "needs": [
+        "reconcile"
+      ],
+      "snapshot": true
+    },
+    "ci": {
+      "owner": "cos",
+      "needs": [
+        "publish"
+      ],
+      "snapshot": true
+    },
+    "handoff": {
+      "owner": "cos",
+      "needs": [
+        "ci"
+      ],
+      "snapshot": true
+    },
+    "closeout": {
+      "owner": "cos",
+      "needs": [
+        "handoff"
+      ],
+      "snapshot": true
+    }
+  }
+}

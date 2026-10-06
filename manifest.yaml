@@ -1,0 +1,39 @@
+schema_version: 1
+name: jarushan-stitch-agent-definition
+description: "Harness-agnostic skills and subagents for Jarushan / Stitch Feature loop."
+skills:
+  - arc
+  - architect
+  - arena
+  - blast-radius
+  - canvas
+  - create-verification-skill
+  - dag
+  - debug-from-first-principles
+  - how
+  - interrogate
+  - maintain-verification-skill
+  - no-mistakes
+  - onboard-models
+  - poteto-mode
+  - queue-when-disconnected
+  - repo-spec-audit
+  - feature-loop
+  - feature-graph
+  - styla
+  - swarm
+  - tdd
+  - unslop
+  - unslop-code
+  - why
+agents:
+  - cos
+  - git
+  - csa
+  - implementer
+  - researcher
+  - reviewer
+  - slice-spec-audit
+  - styla
+  - test-writer
+  - verifier

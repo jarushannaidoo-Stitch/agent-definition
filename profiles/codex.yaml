@@ -1,0 +1,43 @@
+# Codex binding profile "codex" (Stitch strict).
+# Roles name a capability in agents/<id>/agent.yaml; this file binds each
+# capability to a concrete Codex model. Switch models here, not in roles.
+profile: codex
+harness: codex
+description: "Stitch delivery on Codex. Strict: an unmapped capability or unavailable model fails closed."
+strict: true
+
+# Root session defaults, synced into ~/.codex/config.toml.
+main:
+  model: gpt-6.1-sol
+  reasoning: high
+  service_tier: fast
+
+capabilities:
+  orchestrator:
+    model: gpt-6.1-sol
+    reasoning: high
+    service_tier: fast
+  adversarial_audit:
+    model: gpt-6.1-sol
+    reasoning: high
+    service_tier: fast
+  taste:
+    model: gpt-6.1-sol
+    reasoning: high
+    service_tier: fast
+  verify:
+    model: gpt-6.1-sol
+    reasoning: high
+    service_tier: fast
+  implement:
+    model: gpt-5.6-sol
+    reasoning: medium
+    service_tier: fast
+  fast_narrow:
+    model: gpt-5.6-sol
+    reasoning: medium
+    service_tier: fast
+
+# Per-role overrides (agent id -> any of model, reasoning, service_tier).
+# None today: every role resolves from its capability.
+roles: {}

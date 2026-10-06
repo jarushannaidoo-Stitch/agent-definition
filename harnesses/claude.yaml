@@ -1,0 +1,14 @@
+name: claude
+display_name: "Claude Code"
+builtin: false
+skills:
+  out_env: CLAUDE_SKILLS_OUT
+  out_default: agents/claude-skills
+  shape: skill_md
+agents:
+  export: false
+profile:
+  shipping: claude
+  env: CLAUDE_PROFILE
+model_discovery:
+  - kind: claude_catalog

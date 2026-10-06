@@ -1,0 +1,30 @@
+name: hermes
+display_name: "Hermes Agent"
+builtin: false
+skills:
+  out_env: HERMES_SKILLS_OUT
+  # Portable default. Live Hermes tree is ~/.hermes/skills/<category>/<skill>/SKILL.md.
+  # Export flat skills into agents/hermes-skills; install under
+  # ~/.hermes/skills/agentpack/<skill>/ (one category keeps pack skills together).
+  out_default: agents/hermes-skills
+  shape: skill_md
+  install_hint: "Rsync into ~/.hermes/skills/agentpack/ (Hermes discovers category subdirs). Docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/skills"
+agents:
+  export: false
+profile:
+  shipping: hermes
+  env: HERMES_PROFILE
+model_discovery:
+  - kind: hermes_config
+  - kind: inherit
+  - kind: static
+    models:
+      - id: openrouter/auto
+        name: "OpenRouter auto (suggestion)"
+        efforts: [low, medium, high]
+      - id: anthropic/claude-sonnet-4
+        name: "Anthropic Claude Sonnet (suggestion)"
+        efforts: [low, medium, high]
+      - id: openai/gpt-5
+        name: "OpenAI GPT-5 (suggestion)"
+        efforts: [low, medium, high]

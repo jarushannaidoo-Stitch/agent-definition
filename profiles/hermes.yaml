@@ -1,0 +1,27 @@
+# Hermes Agent binding profile "hermes" (shipping stub).
+# Hermes models come from ~/.hermes config / provider keys (OpenRouter, etc.).
+# Pack binds inherit-parent until onboard-models writes concrete ids.
+# Multi-vendor is fine. Stitch-strict delivery stays on profiles/codex.yaml.
+profile: hermes
+harness: hermes
+description: "Hermes Agent skills. Strict capability map; models from Hermes config or onboard-models."
+strict: true
+
+main:
+  model: inherit-parent
+
+capabilities:
+  orchestrator:
+    model: inherit-parent
+  adversarial_audit:
+    model: inherit-parent
+  taste:
+    model: inherit-parent
+  verify:
+    model: inherit-parent
+  implement:
+    model: inherit-parent
+  fast_narrow:
+    model: inherit-parent
+
+roles: {}

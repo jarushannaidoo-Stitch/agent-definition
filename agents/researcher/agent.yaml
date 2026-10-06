@@ -1,0 +1,11 @@
+id: researcher
+name: researcher
+description: "Independent review of regressions, affected callers, invariants, missing coverage, and code quality. Frozen spec and immutable tree; findings only."
+kind: subagent
+model:
+  capability: adversarial_audit
+sandbox: read-only
+tags:
+  - stitch
+  - feature-loop
+skills: []

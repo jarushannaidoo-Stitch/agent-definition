@@ -1,0 +1,30 @@
+name: pi
+display_name: "Pi coding agent"
+builtin: false
+skills:
+  out_env: PI_SKILLS_OUT
+  # Portable default. Install path when Pi is present: ~/.pi/agent/skills
+  # (also discovers ~/.agents/skills). Set PI_SKILLS_OUT=~/.pi/agent/skills to
+  # export straight into the live Pi agent dir.
+  out_default: agents/pi-skills
+  shape: skill_md
+  install_hint: "Copy or rsync into ~/.pi/agent/skills (or rely on ~/.agents/skills). Docs: https://pi.dev/docs/latest/skills"
+agents:
+  export: false
+profile:
+  shipping: pi
+  env: PI_PROFILE
+model_discovery:
+  - kind: pi_models_json
+  - kind: static
+    models:
+      - id: gpt-6.1-sol
+        name: "GPT-6.1 Sol (suggestion)"
+        efforts: [low, medium, high, xhigh, max]
+      - id: claude-opus-5-5
+        name: "Claude Opus 5.5 (suggestion)"
+        efforts: [low, medium, high, xhigh, max]
+      - id: inherit-parent
+        name: "Inherit parent / Pi default"
+        efforts: []
+        service_tiers: []
