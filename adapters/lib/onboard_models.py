@@ -18,6 +18,8 @@ Usage:
 Agent flow (skills/onboard-models): --list-models --json, ask_user for each
 slot, write an answers file, then --answers FILE --export (no TTY required).
 Default profile name is personal-<harness> so harnesses never overwrite each other.
+Pack root: workspace (if it looks like this pack), else AGENTPACK_ROOT/PACK_ROOT,
+else ~/Developer/agent-definition, else ~/agent-definition, else this script tree.
 """
 from __future__ import annotations
 
@@ -56,6 +58,82 @@ def load_harness(root: pathlib.Path, name: str) -> dict:
 
 def expand_home(path: str) -> pathlib.Path:
     return pathlib.Path(os.path.expanduser(path))
+
+
+def looks_like_pack(path: pathlib.Path) -> bool:
+    """True when path is an agent-definition pack root."""
+    try:
+        p = path.expanduser().resolve()
+    except OSError:
+        return False
+    return (p / "manifest.yaml").is_file() and (p / "adapters" / "onboard-models.sh").is_file()
+
+
+def find_pack_root(start: pathlib.Path | None = None) -> pathlib.Path:
+    """Resolve the pack root for local and Cursor cloud agents.
+
+    Order:
+      1. Current workspace (cwd, parents, or ./agent-definition submodule)
+      2. $AGENTPACK_ROOT, then $PACK_ROOT
+      3. ~/Developer/agent-definition
+      4. ~/agent-definition
+      5. Directory that contains this script (adapters/lib -> pack root)
+
+    Does not search the web or GitHub. Cloud/Project agents must open or add
+    this repo as the workspace (see CLOUD.md).
+    """
+    cwd = (start or pathlib.Path.cwd()).expanduser()
+    try:
+        cwd = cwd.resolve()
+    except OSError:
+        cwd = pathlib.Path.cwd()
+
+    # 1. Workspace: cwd and parents, plus a common submodule folder name.
+    seen: set[pathlib.Path] = set()
+    workspace_candidates: list[pathlib.Path] = []
+    for p in [cwd, *cwd.parents]:
+        workspace_candidates.append(p)
+        workspace_candidates.append(p / "agent-definition")
+    for cand in workspace_candidates:
+        try:
+            resolved = cand.resolve()
+        except OSError:
+            continue
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if looks_like_pack(resolved):
+            return resolved
+
+    # 2. Explicit env roots (AGENTPACK_ROOT preferred over PACK_ROOT).
+    for env in ("AGENTPACK_ROOT", "PACK_ROOT"):
+        raw = os.environ.get(env)
+        if not raw:
+            continue
+        cand = expand_home(raw)
+        if looks_like_pack(cand):
+            return cand.resolve()
+
+    # 3-4. Well-known home paths (local Mac / laptop installs).
+    home = pathlib.Path.home()
+    for rel in ("Developer/agent-definition", "agent-definition"):
+        cand = home / rel
+        if looks_like_pack(cand):
+            return cand.resolve()
+
+    # 5. Script location (adapters/lib -> pack root) when the pack was cloned
+    #    and the helper is invoked from inside it.
+    script_root = _HERE.parents[1]
+    if looks_like_pack(script_root):
+        return script_root.resolve()
+
+    raise ap.PackError(
+        "agent-definition pack not found. Open or clone "
+        "jarushannaidoo-Stitch/agent-definition as the workspace "
+        "(Cursor cloud/Project agents), set AGENTPACK_ROOT, or place the pack at "
+        "~/Developer/agent-definition or ~/agent-definition. "
+        "Do not search GitHub for the skill blindly; see CLOUD.md."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -671,7 +749,7 @@ def main(argv=None) -> int:
                         help="with --set/--answers, do not auto-fill unspecified slots from discovery")
     args = parser.parse_args(argv)
 
-    root = pathlib.Path(os.environ.get("PACK_ROOT", _HERE.parents[1]))
+    root = find_pack_root()
     try:
         if args.list_harnesses:
             for name, h in sorted(ap.load_harness_registry(root).items()):

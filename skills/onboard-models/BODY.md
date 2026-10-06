@@ -9,12 +9,17 @@ Agent-led setup. The user says "run onboarding" (or "set up models", "onboard", 
 Run every step yourself. Use `run_command` for the helper and `ask_user` for every question. If `ask_user` has no structured widget in this harness, fall back to a numbered list in a chat message and accept a number, several numbers, or a typed model id as the reply.
 
 ### 1. Find the pack (ask at most once)
-Use the first that exists and contains `adapters/onboard-models.sh`:
-1. `$AGENTPACK_ROOT`
-2. `~/Developer/agent-definition`
-3. A search of the home directory (depth 4) for `adapters/onboard-models.sh` next to `manifest.yaml`
+A folder "looks like the pack" when it has both `manifest.yaml` and `adapters/onboard-models.sh`. Use the first match in this order:
+1. The current workspace: cwd, a parent of cwd, or `./agent-definition` under cwd (submodule layout)
+2. `$AGENTPACK_ROOT`, then `$PACK_ROOT`
+3. `~/Developer/agent-definition`
+4. `~/agent-definition`
 
-Only if all fail, `ask_user` once: "Where is your agent-definition folder?" Run every later command from that root (`cd <root> && ...`).
+Or run `./adapters/onboard-models.sh --list-harnesses` from a candidate; the helper resolves the same order itself.
+
+Do **not** search GitHub, the web, or Cursor plugins for `onboard-models` / `agent-definition`. For Cursor cloud / Project agents the Mac home paths are invisible: the environment must open or include the `jarushannaidoo-Stitch/agent-definition` repo (workspace, Environment repo, or submodule). See `CLOUD.md`.
+
+Only if every candidate fails, `ask_user` once: "Where is your agent-definition folder?" (local path, or confirm the cloud workspace has this repo). Run every later command from that root (`cd <root> && ...`).
 
 ### 2. Pick the harness
 Decide which harness you are running in from your own tool set (see Harness notes), not from environment variables (a bridge can inherit another harness's env). Run `./adapters/onboard-models.sh --list-harnesses`. Then `ask_user` one question: "Set up models for which harness?" with every registered harness as an option, the one you are in listed first and marked "(this one)". Skip the question when the user already named a harness ("set up models for Claude").
@@ -66,6 +71,7 @@ Tell the user, in plain words:
 - `inherit-parent` means the harness picks the model (Grok Bot settings, Pi default, Hermes config). Codex needs concrete ids.
 - A new harness is registered by copying `harnesses/_template.yaml`; then this flow works for it unchanged.
 - Do not edit shipping profiles, and do not skip the preview confirmation before export.
+- Do not invent a missing pack by cloning or searching GitHub unless the user explicitly asks you to clone `jarushannaidoo-Stitch/agent-definition` into the workspace.
 
 ## Tools
 - `ask_user`: harness choice, quick path, one question per slot, effort, final confirmation. Numbered list in chat when no widget exists.
@@ -78,9 +84,10 @@ Tell the user, in plain words:
 - Discovery reads `~/.codex/models_cache.json`. Export writes `~/.codex/agents`, `~/.agents/skills`, `~/.codex/AGENTS.md` and owned `config.toml` keys; restart Codex to pick up the new main model.
 
 ## Harness notes: cursor
-- You are in Cursor when you have Shell, Read and AskQuestion. User says: "run onboarding" or "/onboard-models".
+- You are in Cursor when you have Shell, Read and AskQuestion. User says: "run onboarding" or "/onboard-models" (not Cursor's `/onboard` Environments flow).
 - `ask_user` -> AskQuestion: one single-select question per slot in one call, plus an "Other - type a model id" option (the user can also reply in chat). `run_command` -> Shell with the pack root as working directory.
-- Discovery: `~/.cursor/rules/pstack-models.mdc` ids plus the Codex cache. Cursor export does not apply model profiles yet; the profile is recorded and per-chat models still come from the Cursor model picker and pstack-models.mdc. Say so in the confirmation.
+- **Local Agent** chats see `~/.cursor/skills` and home pack paths. **Cloud / Project** agents run on a VM: open `jarushannaidoo-Stitch/agent-definition` as the workspace (or add it to the Environment / submodule it), then say "run onboarding". Do not search GitHub for the skill; do not start Environments setup.
+- Discovery: `~/.cursor/rules/pstack-models.mdc` ids plus the Codex cache (home paths may be empty on cloud). Cursor export does not apply model profiles yet; the profile is recorded and per-chat models still come from the Cursor model picker and pstack-models.mdc. Say so in the confirmation.
 
 ## Harness notes: claude
 - You are in Claude Code when you have Bash and AskUserQuestion. User says: "run onboarding" or "/onboard-models".
@@ -89,16 +96,16 @@ Tell the user, in plain words:
 
 ## Harness notes: grokbot
 - You are in Grok Bot when you have SendToUser, Shell and ListMachines. User says: "run onboarding" (or "set up models").
-- The pack lives on the user's laptop, not the box: call ListMachines, use the laptop's machineId on every Shell call, and run from `~/Developer/agent-definition` there.
+- The pack usually lives on the user's laptop, not the box: call ListMachines, use the laptop's machineId on every Shell call, and resolve the pack with the same find order (workspace / AGENTPACK_ROOT / ~/Developer/agent-definition / ~/agent-definition).
 - `ask_user` -> SendToUser question widget, one question per slot (the turn ends; the answer resumes you). A subagent cannot ask; it returns the questions to its parent. `run_command` -> Shell with machineId.
 - Grok Bot models come from its agent settings, so discovery offers `inherit-parent`; also offer "Other" for an id seen in the Grok Bot model picker. To set up Codex or Claude from Grok Bot, pick that harness in step 2. Export writes `~/agents/grokbot-skills` on the laptop; copying it into the box workflows folder is a separate step to offer.
 
 ## Harness notes: pi
 - User says: "run onboarding" or "/skill:onboard-models".
 - `ask_user`: no confirmed widget; use the numbered-list fallback. `run_command` -> bash tool.
-- Discovery: `~/.pi/agent/models.json` + `settings.json` when installed, else static suggestions. Export writes `~/agents/pi-skills`; install with `rsync -a ~/agents/pi-skills/ ~/.pi/agent/skills/` after asking.
+- Discovery: `~/.pi/agent/models.json` + `settings.json` when installed, else static suggestions. Export writes `~/agents/pi-skills` by default.
 
 ## Harness notes: hermes
 - User says: "run onboarding" or "/onboard-models".
-- `ask_user`: no confirmed widget; use the numbered-list fallback. `run_command` -> the Hermes terminal tool.
-- Discovery: `~/.hermes/config.yaml` when installed, else inherit plus static suggestions. Export writes `~/agents/hermes-skills`; install under `~/.hermes/skills/agentpack/` after asking.
+- `ask_user`: numbered-list fallback unless a widget exists. `run_command` -> shell/bash.
+- Discovery: Hermes config when installed, else static suggestions. Export writes `~/agents/hermes-skills` by default.

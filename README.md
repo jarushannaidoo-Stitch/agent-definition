@@ -6,7 +6,7 @@ The authoritative locations are `~/Developer/agent-definition` and `~/Developer/
 
 Point any harness at this folder. An adapter should compile native skills and agents from the neutral YAML + markdown sources. See [SCHEMA.md](./SCHEMA.md).
 
-**Set up your models: in any harness, ask the agent to "run onboarding" (or "run onboard-models").** It finds this pack, lists the models your harness can use, asks you to pick, writes and activates `profiles/personal-<harness>.yaml`, and re-exports. No paths or flags to remember.
+**Set up your models: in any harness, ask the agent to "run onboarding" (or "run onboard-models").** It finds this pack (workspace first, then `$AGENTPACK_ROOT`, then `~/Developer/agent-definition` / `~/agent-definition`), lists the models your harness can use, asks you to pick, writes and activates `profiles/personal-<harness>.yaml`, and re-exports. No paths or flags to remember. Cursor cloud: open this repo as the workspace first ([CLOUD.md](CLOUD.md)).
 
 ## Quick start
 
@@ -92,8 +92,20 @@ Neither Pi nor Hermes was installed on the authoring laptop when these adapters 
 
 ## Model onboarding
 
-In any harness: ask the agent to run onboard-models ("run onboarding", "set up my models", "onboard"). The `onboard-models` skill finds the pack (`$AGENTPACK_ROOT`, else `~/Developer/agent-definition`, else asks once), picks the harness, discovers models with `--list-models --json`, asks one question per capability (widget where the harness has one, numbered list otherwise), previews, then runs `--answers <file> --activate --export` and `check.sh`. It writes `profiles/personal-<harness>.yaml` (one per harness, never a shipping profile) and `profiles/.active/<harness>`, so exporters and `check.sh` use it without env vars. Say "reset my models" to deactivate. Selection order: `--profile`, then the harness env var, then `profiles/.active/<harness>`, then the shipping profile. Personal profiles may mix vendors; Stitch-strict Codex delivery does not. Cursor records the profile but does not apply it yet.
+In any harness: ask the agent to run onboard-models ("run onboarding", "set up my models", "onboard"). The `onboard-models` skill finds the pack, picks the harness, discovers models with `--list-models --json`, asks one question per capability (widget where the harness has one, numbered list otherwise), previews, then runs `--answers <file> --activate --export` and `check.sh`. It writes `profiles/personal-<harness>.yaml` (one per harness, never a shipping profile) and `profiles/.active/<harness>`, so exporters and `check.sh` use it without env vars. Say "reset my models" to deactivate. Selection order: `--profile`, then the harness env var, then `profiles/.active/<harness>`, then the shipping profile. Personal profiles may mix vendors; Stitch-strict Codex delivery does not. Cursor records the profile but does not apply it yet.
 
+Pack root discovery (skill + `./adapters/onboard-models.sh`):
+
+1. Current workspace (cwd, a parent, or `./agent-definition` under cwd) when it has `manifest.yaml` + `adapters/onboard-models.sh`
+2. `$AGENTPACK_ROOT`, then `$PACK_ROOT`
+3. `~/Developer/agent-definition`
+4. `~/agent-definition`
+
+Do not search GitHub for the skill. See **[CLOUD.md](CLOUD.md)** for Cursor cloud / Project agents.
+
+## Using with Cursor cloud agents
+
+Cloud agents cannot see your Mac home paths. Open [jarushannaidoo-Stitch/agent-definition](https://github.com/jarushannaidoo-Stitch/agent-definition) as the workspace (or add it to the Environment / submodule it), then say **run onboarding**. Prefer `/onboard-models` over Cursor's `/onboard` Environments command. Full steps: [CLOUD.md](CLOUD.md).
 
 ## What lives here
 
@@ -105,6 +117,7 @@ In any harness: ask the agent to run onboard-models ("run onboarding", "set up m
 - `DELIVERY-LESSONS.md` - preserved incident evidence and recurrence tracking
 - `adapters/` - reference exporters (Codex, Cursor, Grok Bot, Claude, Pi, Hermes) plus `onboard-models.sh`; the pack itself has no harness lock-in
 - `harnesses/` - registry of consumer hosts (`_template.yaml` to add more)
+- `CLOUD.md` - using this pack with Cursor cloud / Project agents
 
 ## Repository boundary
 

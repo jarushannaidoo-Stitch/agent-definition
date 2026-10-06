@@ -171,7 +171,7 @@ Add a harness in five minutes: copy `_template.yaml`, fill `name` / out dirs / d
 
 ## Model onboarding
 
-`adapters/onboard-models.sh` (skill `onboard-models`) writes `profiles/<profile>.yaml` (default `personal-<harness>`) for a harness without editing shipping profiles. Users never run it by hand: they ask an agent to "run onboarding" and the skill drives it.
+`adapters/onboard-models.sh` (skill `onboard-models`) writes `profiles/<profile>.yaml` (default `personal-<harness>`) for a harness without editing shipping profiles. Users never run it by hand: they ask an agent to "run onboarding" and the skill drives it. Pack root resolution: workspace (if it looks like this pack), else `$AGENTPACK_ROOT` / `$PACK_ROOT`, else `~/Developer/agent-definition`, else `~/agent-definition` (see `CLOUD.md` for Cursor cloud agents; do not search GitHub for the skill).
 
 ```bash
 ./adapters/onboard-models.sh --harness codex --list-models
