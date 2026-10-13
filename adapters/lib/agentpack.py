@@ -654,7 +654,34 @@ def render_resolved_sidecar(profile: Profile, pack: Pack, resolved: dict[str, Bi
         lines.append(f"  {agent.id}: {agent.meta['model']['capability']} -> {b.summary()}  ({b.source})")
     if profile.main is not None:
         lines.append(f"main: {profile.main.summary()}")
+    params = launch_params(pack.root, profile.harness)
+    if params:
+        # Per-role launch parameters in each model's own names, for harnesses whose
+        # catalog declares reasoning_param (Grok Bot cloud agents).
+        lines.append("launch:")
+        for agent in pack.agents:
+            b = resolved[agent.id]
+            if b.model == INHERIT_MODEL:
+                lines.append(f"  {agent.id}: inherit")
+                continue
+            parts = [f"model={b.model}"]
+            if b.reasoning:
+                parts.append(f"{params.get(b.model, 'reasoning')}={b.reasoning}")
+            parts.append(f"fast={'true' if b.service_tier == 'fast' else 'false'}")
+            lines.append(f"  {agent.id}: " + " ".join(parts))
     return "\n".join(lines) + "\n"
+
+
+def launch_params(root: pathlib.Path, harness: str) -> dict[str, str]:
+    """model id -> reasoning parameter name from the harness's static catalog."""
+    registry = load_harness_registry(root)
+    out = {}
+    for step in (registry.get(harness) or {}).get("model_discovery") or []:
+        if isinstance(step, dict) and step.get("kind") == "static":
+            for raw in step.get("models") or []:
+                if isinstance(raw, dict) and raw.get("reasoning_param"):
+                    out[raw["id"]] = raw["reasoning_param"]
+    return out
 
 
 # ---------------------------------------------------------------------------
