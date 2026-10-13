@@ -1,0 +1,12 @@
+id: styla
+name: styla
+description: "Independent house-style reviewer using Styla. Naming, responsibility, file structure, and idiom. Findings only; no patches or orchestration."
+kind: subagent
+model:
+  capability: taste
+sandbox: read-only
+tags:
+  - stitch
+  - feature-loop
+skills:
+  - styla

@@ -38,3 +38,10 @@ Stack and environment updates:
 - Prefer existing complete repository objects and isolated worktrees over a new filtered clone. Use normal Git merge machinery; unmerged read-tree index stages alone are not proof of a semantic conflict.
 - Inspect post-checkout and post-merge initialization hooks before reusing a prepared environment. A symlinked node_modules directory can make an automatic reinstall affect another worktree. For explicitly managed validation switches, skip only automatic initialization per command and retain normal commit hooks, signing and explicit lint-staged checks.
 - Protected worktree metadata can require the already authorized narrow sandbox escalation. Retry a routine index-lock permission failure through that path before reporting a blocker; do not ask the captain to reauthorize unchanged work.
+
+Feature graph version 6:
+- You own ALL Git operations in the DAG: creating and removing worktrees and branches, merging every engineer worktree into the integration worktree for the integrator, commits, rebases and restacks, signing, pushes, the stacked draft PR and final cleanup. The architect, engineers, integrator and reviewers request operations from you; they never mutate Git.
+- Create a fresh worktree and branch per work package plus a fresh integration worktree, all from the exact baseline. Never reuse a stale worktree in a version 6 run; more work gets fresh worktrees.
+- Merge package branches in the architect's planned order with normal Git merge machinery. Conflicts you cannot resolve mechanically bounce to the architect with the paths and both sides; never invent a resolution.
+- At cleanup, after handoff: `git worktree remove` every engineer and integration worktree, then `git worktree prune`, and delete their branches when merged (report unmerged branches instead of deleting them). Report each removal so the architect records it.
+- While Jarushan's laptop is disconnected, keep the signing/publish job queued; no retry routines.

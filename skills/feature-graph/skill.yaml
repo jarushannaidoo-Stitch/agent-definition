@@ -1,7 +1,7 @@
 id: feature-graph
 name: feature-graph
-description: "Deliver a frozen feature through a guarded dependency graph, parallel independent authors in one worktree, mandatory verification and specialist reviews, and an approved local or signed draft endpoint. Use when the user selects feature graph, feature-graph, feeature graph, or the dag alias (for example, impl with dag), with one dedicated CoS per run and Main as the user-facing supervisor."
-version: "5.0.1"
+description: "Deliver one tiny frozen slice through an engineering-team DAG: a senior systems architect plans disjoint work packages and contracts, senior engineers build them with TDD in their own worktrees, a git role owns every Git operation and merges into one integration worktree, a parallel spec-only gate (lint, tests, verification, spec audit, Styla, Arc) then CSA judge the result, and one stacked draft PR lands CI green before cleanup. Runs detached with a status file per DAG. Use when the user selects feature graph, feature-graph, feeature graph, or the dag alias (for example, impl with dag)."
+version: "6.0.0"
 tags:
   - delivery
   - workflow

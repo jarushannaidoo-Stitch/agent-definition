@@ -7,7 +7,7 @@ import graph_state
 
 
 class CoordinationTests(GraphV2Case):
-    workflow = SKILL / 'workflow.json'
+    workflow = SKILL / 'references/v5/workflow.json'
 
     def initialize(self):
         self.contract = self.v5_contract()

@@ -1,0 +1,12 @@
+id: senior-engineer
+name: senior_engineer
+description: "Senior software engineer for one Feature graph v6 work package. TDD inside owned files in its own worktree; bounces wrong contracts to the architect instead of working around them."
+kind: subagent
+model:
+  capability: implement
+sandbox: workspace-write
+tags:
+  - delivery
+  - feature-graph
+skills:
+  - tdd

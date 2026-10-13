@@ -1,0 +1,12 @@
+id: cos
+name: cos
+description: "Dedicated coordinator for one Feature graph run. Owns graph, workers and evidence; reports to Main. No implementation or diagnostic execution."
+kind: subagent
+model:
+  capability: orchestrator
+sandbox: workspace-write
+tags:
+  - delivery
+  - feature-graph
+skills:
+  - feature-graph

@@ -15,11 +15,13 @@ from evidence import digest, file_record, git, require, snapshot, verify_record
 from receipts import passing_checks, sha, strings, text, validate
 
 
-WORKFLOW = Path(__file__).resolve().parent.parent / "workflow.json"
-LEGACY_WORKFLOW = WORKFLOW.parent / "references/v1/workflow.json"
-V2_WORKFLOW = WORKFLOW.parent / "references/v2/workflow.json"
-V3_WORKFLOW = WORKFLOW.parent / "references/v3/workflow.json"
-V4_WORKFLOW = WORKFLOW.parent / "references/v4/workflow.json"
+# This guard operates saved version 1 through 5 runs. Version 6 runs use dag_run.py.
+SKILL_ROOT = Path(__file__).resolve().parent.parent
+WORKFLOW = SKILL_ROOT / "references/v5/workflow.json"
+LEGACY_WORKFLOW = SKILL_ROOT / "references/v1/workflow.json"
+V2_WORKFLOW = SKILL_ROOT / "references/v2/workflow.json"
+V3_WORKFLOW = SKILL_ROOT / "references/v3/workflow.json"
+V4_WORKFLOW = SKILL_ROOT / "references/v4/workflow.json"
 
 
 def now():

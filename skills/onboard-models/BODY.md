@@ -49,18 +49,21 @@ Each question: options are the discovered model ids (label `name (id)`), the slo
 
 Then ask reasoning effort once for all slots (options: the efforts the chosen models share, plus "harness default"), and offer per-slot overrides only if the user asks. Ask service tier only when a chosen model lists one (`fast`), default "harness default".
 
+### 4b. Customize individual roles (optional)
+After the capability picks, `ask_user` "Customize individual roles?" (no / yes). The JSON's `roles` map lists every pack role (architect, senior-engineer, integrator, git, styla, reviewer (Arc), slice-spec-audit, csa, verifier, ...) with its capability and current resolved model and `source` (`capabilities.<cap>` or `roles.<role>`). On yes, show that table and let the user pick the roles to change; for each, offer the same model options as the slots (current resolved model first) plus "Use the capability default" (clears the override). Resolution is role override > capability binding > fail closed (strict). Only offer models the harness discovered; a free-text id makes `check.sh` fail on strict profiles.
+
 ### 5. Write, activate, export
 1. Write the answers to a temp file (JSON):
-   `{"main": {"model": "<id>", "reasoning": "<effort>"}, "capabilities": {"orchestrator": {"model": "<id>", "reasoning": "<effort>", "service_tier": "fast"}, ...}}`
-   Omit `reasoning` / `service_tier` for "harness default". Omit `main` when skipped.
+   `{"main": {"model": "<id>", "reasoning": "<effort>"}, "capabilities": {"orchestrator": {"model": "<id>", "reasoning": "<effort>", "service_tier": "fast"}, ...}, "roles": {"styla": {"model": "<id>", "reasoning": "high"}, "git": null}}`
+   Omit `reasoning` / `service_tier` for "harness default". Omit `main` when skipped. In `roles`, include only overridden roles; `null` (or `"-"`) clears an existing override. Single slots also work with `--set roles.<role>=model[:reasoning[:tier]]` and `--set roles.<role>=-`.
 2. Preview: `./adapters/onboard-models.sh --harness <h> --answers <file> --dry-run`. Fix any `error:` by re-asking only the slot it names.
-3. Show the user the preview as a short slot -> model table and `ask_user` "Write and activate this?" (yes / change a slot / cancel). For Codex, say that export rewrites the installed agents and the owned `~/.codex/config.toml` keys (a config backup is written first).
+3. Show the user the preview as a short slot -> model table (plus any role overrides) and `ask_user` "Write and activate this?" (yes / change a slot / cancel). For Codex, say that export rewrites the installed agents and the owned `~/.codex/config.toml` keys (a config backup is written first).
 4. On yes: `./adapters/onboard-models.sh --harness <h> --answers <file> --activate --export`. Always go through the script, never hand-edit the profile, so validation stays in one place. `--activate` writes `profiles/.active/<h>`, so later exports and `./adapters/check.sh` use the personal profile without env vars.
 5. Run `./adapters/check.sh` and report anything that is not clean.
 
 ### 6. Confirm
 Tell the user, in plain words:
-- the file written (`profiles/personal-<h>.yaml`) and each slot -> model
+- the file written (`profiles/personal-<h>.yaml`), each slot -> model and each role override
 - that it is active for `<h>` and was exported (plus any install step from Harness notes, for example copying a portable skills folder)
 - how to change it: say "run onboarding" again (answers are pre-filled from the current profile)
 - how to undo: say "reset my models", which runs `./adapters/onboard-models.sh --harness <h> --deactivate` and re-exports, returning to the shipping profile
@@ -87,7 +90,7 @@ Tell the user, in plain words:
 - You are in Cursor when you have Shell, Read and AskQuestion. User says: "run onboarding" or "/onboard-models" (not Cursor's `/onboard` Environments flow).
 - `ask_user` -> AskQuestion: one single-select question per slot in one call, plus an "Other - type a model id" option (the user can also reply in chat). `run_command` -> Shell with the pack root as working directory.
 - **Local Agent** chats see `~/.cursor/skills` and home pack paths. **Cloud / Project** agents run on a VM: open `jarushannaidoo-Stitch/agent-definition` as the workspace (or add it to the Environment / submodule it), then say "run onboarding". Do not search GitHub for the skill; do not start Environments setup.
-- Discovery: `~/.cursor/rules/pstack-models.mdc` ids plus the Codex cache (home paths may be empty on cloud). Cursor export does not apply model profiles yet; the profile is recorded and per-chat models still come from the Cursor model picker and pstack-models.mdc. Say so in the confirmation.
+- Discovery: `~/.cursor/rules/pstack-models.mdc` ids plus the Codex cache (home paths may be empty on cloud). Cursor export records the active profile's resolved role models (including per-role overrides) in `~/.cursor/skills/.agentpack-resolved`; per-chat models still come from the Cursor model picker and pstack-models.mdc. Say so in the confirmation.
 
 ## Harness notes: claude
 - You are in Claude Code when you have Bash and AskUserQuestion. User says: "run onboarding" or "/onboard-models".

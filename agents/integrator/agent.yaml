@@ -1,0 +1,11 @@
+id: integrator
+name: integrator
+description: "Feature graph v6 integrator. Has git merge every engineer worktree into one fresh integration worktree, then checks the merged tree against the interface contracts. Conflicts and contract breaks bounce to the architect."
+kind: subagent
+model:
+  capability: verify
+sandbox: workspace-write
+tags:
+  - delivery
+  - feature-graph
+skills: []

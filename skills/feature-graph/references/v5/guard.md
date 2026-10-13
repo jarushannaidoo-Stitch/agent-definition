@@ -1,6 +1,6 @@
 # Operating the version 5 dependency guard
 
-New runs use version 5. Existing states continue through the same script with [version 1](v1/guard.md), [version 2](v2/guard.md), [version 3](v3/guard.md) or [version 4](v4/guard.md) rules. Do not reinitialize or migrate an active run. The current guard selects archived workflow bytes from the saved state version; old author sequencing and review prerequisites remain intact.
+New runs use version 5. Existing states continue through the same script with [version 1](../v1/guard.md), [version 2](../v2/guard.md), [version 3](../v3/guard.md) or [version 4](../v4/guard.md) rules. Do not reinitialize or migrate an active run. The current guard selects archived workflow bytes from the saved state version; old author sequencing and review prerequisites remain intact.
 
 Requires Python 3.9+, Git, and macOS or Linux. No Python packages, LangGraph, service or network are needed.
 Run the script relative to the loaded skill directory. Use absolute paths for all run inputs and evidence.

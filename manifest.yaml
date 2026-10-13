@@ -27,12 +27,15 @@ skills:
   - unslop-code
   - why
 agents:
+  - architect
   - cos
   - git
   - csa
   - implementer
+  - integrator
   - researcher
   - reviewer
+  - senior-engineer
   - slice-spec-audit
   - styla
   - test-writer

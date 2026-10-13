@@ -484,7 +484,7 @@ def load_answers(path: pathlib.Path) -> dict:
 
 def seed_bindings(root: pathlib.Path, harness: dict, profile_name: str) -> dict:
     """Prefer existing personal profile, else shipping profile, else empty."""
-    out: dict = {"main": None, "capabilities": {}}
+    out: dict = {"main": None, "capabilities": {}, "roles": {}}
     for candidate in (profile_name, (harness.get("profile") or {}).get("shipping")):
         if not candidate:
             continue
@@ -508,7 +508,42 @@ def seed_bindings(root: pathlib.Path, harness: dict, profile_name: str) -> dict:
                 **({} if not b.reasoning else {"reasoning": b.reasoning}),
                 **({} if not b.service_tier else {"service_tier": b.service_tier}),
             }
+        for rid, raw in (prof.roles or {}).items():
+            out["roles"][rid] = {k: v for k, v in raw.items() if k in ("model", "reasoning", "service_tier")}
         break
+    return out
+
+
+ROLE_SLOT_PREFIX = "roles."
+
+
+def pack_role_ids(root: pathlib.Path) -> dict[str, str]:
+    """agent id -> capability for every role in the pack."""
+    pack = ap.load_pack(root)
+    return {a.id: a.meta["model"]["capability"] for a in pack.agents}
+
+
+def validate_roles(bindings: dict, role_caps: dict[str, str]) -> None:
+    roles = bindings.get("roles") or {}
+    if not isinstance(roles, dict):
+        raise ap.PackError("roles must be a mapping of role id -> binding")
+    unknown = sorted(set(roles) - set(role_caps))
+    if unknown:
+        raise ap.PackError(f"unknown role(s) {unknown}; pack roles: {', '.join(sorted(role_caps))}")
+    for rid, raw in roles.items():
+        if not isinstance(raw, dict) or not raw:
+            raise ap.PackError(f"roles.{rid}: expected a non-empty mapping of model/reasoning/service_tier")
+
+
+def resolved_roles(bindings: dict, role_caps: dict[str, str]) -> dict[str, dict]:
+    """Role override > capability binding; returns the effective binding per role."""
+    caps = bindings.get("capabilities") or {}
+    roles = bindings.get("roles") or {}
+    out = {}
+    for rid, cap in sorted(role_caps.items()):
+        base = dict(caps.get(cap) or {})
+        over = roles.get(rid) or {}
+        out[rid] = {**base, **over, "capability": cap, "source": f"roles.{rid}" if over else f"capabilities.{cap}"}
     return out
 
 
@@ -518,13 +553,22 @@ def apply_sets(bindings: dict, sets: list[str]) -> None:
             raise ap.PackError(f"--set expects SLOT=model[:reasoning[:tier]], got {item!r}")
         slot, _, spec = item.partition("=")
         slot = slot.strip()
-        binding = parse_binding_spec(spec)
+        binding = None if spec.strip() in ("-", "default", "capability") else parse_binding_spec(spec)
+        if binding is None and not slot.startswith(ROLE_SLOT_PREFIX):
+            raise ap.PackError(f"{slot}: '-' clears only roles.<role> overrides")
         if slot == "main":
             bindings["main"] = binding
         elif slot in ap.CAPABILITIES:
             bindings.setdefault("capabilities", {})[slot] = binding
+        elif slot.startswith(ROLE_SLOT_PREFIX) and slot[len(ROLE_SLOT_PREFIX):]:
+            rid = slot[len(ROLE_SLOT_PREFIX):]
+            if spec.strip() in ("-", "default", "capability"):
+                (bindings.setdefault("roles", {})).pop(rid, None)
+            else:
+                bindings.setdefault("roles", {})[rid] = binding
         else:
-            raise ap.PackError(f"unknown slot {slot!r}; expected main or one of {', '.join(ap.CAPABILITIES)}")
+            raise ap.PackError(f"unknown slot {slot!r}; expected main, roles.<role> "
+                               f"or one of {', '.join(ap.CAPABILITIES)}")
 
 
 def apply_answers(bindings: dict, answers: dict) -> None:
@@ -537,6 +581,16 @@ def apply_answers(bindings: dict, answers: dict) -> None:
         if cap not in ap.CAPABILITIES:
             raise ap.PackError(f"unknown capability {cap!r} in answers")
         bindings.setdefault("capabilities", {})[cap] = dict(raw)
+    if "roles" in answers:
+        roles = answers.get("roles") or {}
+        if not isinstance(roles, dict):
+            raise ap.PackError("answers.roles must be a mapping of role id -> binding")
+        target = bindings.setdefault("roles", {})
+        for rid, raw in roles.items():
+            if raw in (None, "-", "default", "capability", {}):
+                target.pop(rid, None)
+            else:
+                target[rid] = dict(raw)
 
 
 def complete_bindings(bindings: dict, models: list[ModelInfo], allow_missing: bool = False) -> None:
@@ -617,7 +671,18 @@ def render_profile_yaml(profile_name: str, harness: dict, bindings: dict,
         if b.get("service_tier"):
             lines.append(f"    service_tier: {b['service_tier']}")
     lines.append("")
-    lines.append("roles: {}")
+    roles = bindings.get("roles") or {}
+    if not roles:
+        lines.append("roles: {}")
+    else:
+        lines.append("# Per-role overrides: role override > capability binding > fail closed (strict).")
+        lines.append("roles:")
+        for rid in sorted(roles):
+            b = roles[rid]
+            lines.append(f"  {rid}:")
+            for key in ("model", "reasoning", "service_tier"):
+                if b.get(key):
+                    lines.append(f"    {key}: {b[key]}")
     lines.append("")
     return "\n".join(lines)
 
@@ -626,7 +691,8 @@ def render_profile_yaml(profile_name: str, harness: dict, bindings: dict,
 # Interactive prompts
 # ---------------------------------------------------------------------------
 
-def interactive_fill(bindings: dict, models: list[ModelInfo], notes: list[str]) -> None:
+def interactive_fill(bindings: dict, models: list[ModelInfo], notes: list[str],
+                     role_caps: dict[str, str] | None = None) -> None:
     if not sys.stdin.isatty():
         raise ap.PackError("no TTY for interactive onboarding; pass --set or --answers "
                            "(see skills/onboard-models for the agent flow)")
@@ -693,6 +759,23 @@ def interactive_fill(bindings: dict, models: list[ModelInfo], notes: list[str]) 
     for cap in ap.CAPABILITIES:
         caps[cap] = pick(cap, caps.get(cap))
 
+    if not role_caps:
+        return
+    roles = bindings.setdefault("roles", {})
+    print("\nRoles (current resolved model; role override > capability):")
+    for rid, eff in resolved_roles(bindings, role_caps).items():
+        print(f"  {rid:<17} {eff['capability']:<18} -> {eff.get('model', 'unset')}"
+              f"{':' + eff['reasoning'] if eff.get('reasoning') else ''}  ({eff['source']})")
+    if input("Customize individual roles? [y/N]> ").strip().lower() not in ("y", "yes"):
+        return
+    print("  For each role: blank keeps the current value, '-' clears the override (use the capability).")
+    for rid, eff in resolved_roles(bindings, role_caps).items():
+        raw = input(f"  {rid} override? [y/N/-]> ").strip().lower()
+        if raw == "-":
+            roles.pop(rid, None)
+        elif raw in ("y", "yes"):
+            roles[rid] = pick(f"roles.{rid}", roles.get(rid) or {k: eff[k] for k in ("model", "reasoning", "service_tier") if eff.get(k)})
+
 
 # ---------------------------------------------------------------------------
 # Export helper
@@ -705,11 +788,10 @@ def run_export(root: pathlib.Path, harness: dict, profile_name: str) -> int:
     if profile_env:
         env[profile_env] = profile_name
     cmd = [sys.executable, str(_HERE / "agentpack.py"), hname]
+    cmd += ["--profile", profile_name]
     if hname == "cursor":
-        # Cursor export is a dual skills mirror with no profile flag; the profile is recorded for later.
-        print("note: cursor export does not apply model profiles yet; skills re-exported unchanged")
-    else:
-        cmd += ["--profile", profile_name]
+        print("note: cursor export records the resolved role models (including per-role overrides) in "
+              "~/.cursor/skills/.agentpack-resolved; per-chat models still come from the Cursor picker")
     print(f"export: {' '.join(cmd)} ({profile_env}={profile_name})")
     return subprocess.call(cmd, cwd=str(root), env=env)
 
@@ -738,9 +820,10 @@ def main(argv=None) -> int:
                         help="allow overwriting an existing profile that is bound to a different harness")
     parser.add_argument("--dry-run", action="store_true", help="print the profile YAML; write nothing")
     parser.add_argument("--set", action="append", default=[], dest="sets",
-                        help="SLOT=model[:reasoning[:service_tier]] (repeatable; non-interactive)")
+                        help="SLOT=model[:reasoning[:service_tier]] (repeatable; non-interactive). "
+                             "SLOT is main, a capability, or roles.<role>; roles.<role>=- clears an override")
     parser.add_argument("--answers", type=pathlib.Path,
-                        help="YAML/JSON file with main: and capabilities: bindings")
+                        help="YAML/JSON file with main:, capabilities: and optional roles: bindings")
     parser.add_argument("--from-profile", help="seed from this profile name (default: existing --profile, else shipping)")
     parser.add_argument("--export", action="store_true", help="run the harness exporter with the new profile after write")
     parser.add_argument("--strict", choices=("true", "false"), default="true")
@@ -769,6 +852,7 @@ def main(argv=None) -> int:
                 print(f"no active pointer for {harness['name']}; already on the shipping profile")
             return 0
         models, notes = discover_models(root, harness)
+        role_caps = pack_role_ids(root)
         profile_env = (harness.get("profile") or {}).get("env") or harness["name"].upper() + "_PROFILE"
 
         if args.list_models and args.json:
@@ -783,11 +867,12 @@ def main(argv=None) -> int:
                 "active_profile": ap.active_profile_name(root, harness["name"]),
                 "shipping_profile": (harness.get("profile") or {}).get("shipping"),
                 "exporter": f"./adapters/export-{harness['name']}.sh",
-                "export_applies_profile": harness["name"] != "cursor",
+                "export_applies_profile": True,
                 "slots": list(SLOTS),
                 "main_required": harness["name"] in ap.CONCRETE_MODEL_HARNESSES,
                 "inherit_model": INHERIT,
                 "current": current,
+                "roles": resolved_roles(current, role_caps),
                 "models": [{"id": m.id, "name": m.name, "efforts": m.efforts,
                             "service_tiers": m.service_tiers, "source": m.source} for m in models],
                 "notes": notes,
@@ -814,7 +899,7 @@ def main(argv=None) -> int:
         # Non-interactive when the caller supplied sets/answers/from-profile (agent flow).
         interactive = not args.sets and not args.answers and not args.from_profile
         if interactive:
-            interactive_fill(bindings, models, notes)
+            interactive_fill(bindings, models, notes, role_caps)
         else:
             complete_bindings(bindings, models, allow_missing=args.no_default_fill)
             # Still require every capability after fill.
@@ -830,6 +915,13 @@ def main(argv=None) -> int:
                         raise ap.PackError("main binding required")
                     complete_bindings(bindings, models, allow_missing=False)
 
+        validate_roles(bindings, role_caps)
+        by_id = {m.id for m in models}
+        for rid, raw in (bindings.get("roles") or {}).items():
+            mid = raw.get("model")
+            if mid and models and mid not in by_id and mid != INHERIT:
+                print(f"warning: roles.{rid} model {mid!r} was not in the discovered list "
+                      f"(check.sh fails strict profiles on unavailable role models)", file=sys.stderr)
         yaml_text = render_profile_yaml(
             args.profile, harness, bindings,
             description=args.description,
@@ -873,8 +965,8 @@ def main(argv=None) -> int:
         ap.load_profile(root, args.profile, harness["name"])
         print(f"wrote {_short(out)}")
         if harness["name"] == "cursor":
-            print("note: profile recorded; Cursor export does not apply model profiles yet "
-                  "(per-chat models come from the Cursor picker and pstack-models.mdc)")
+            print("note: Cursor export records role resolution in ~/.cursor/skills/.agentpack-resolved; "
+                  "per-chat models still come from the Cursor picker and pstack-models.mdc")
         print(f"activate: {(harness.get('profile') or {}).get('env') or harness['name'].upper()+'_PROFILE'}={args.profile} "
               f"./adapters/export-{harness['name']}.sh   "
               f"# or: python3 adapters/lib/agentpack.py {harness['name']} --profile {args.profile}")
