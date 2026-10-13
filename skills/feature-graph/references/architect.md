@@ -24,7 +24,7 @@ Launch the `integrator`. It asks `git` to merge every package branch into the in
 
 ## 6. gate (parallel) and csa_final
 
-On the merged integration worktree, start in parallel: `verifier` for lint, tests and verification (required local checks and the real user path), `slice-spec-audit` for a blank-slate spec audit, `styla` and `reviewer` (Arc) side by side. Each starts fresh with only the frozen spec, repository rules and the immutable candidate identity; never the plan, contracts, author notes or peer findings. After all pass, launch `csa` for the final review. On a failure, record it with `dag_run.py fail` and route the finding as-is to the owning engineer; do not reinterpret or soften it. When `loop_cap` is exceeded the run escalates to HQ/Jarushan; stop and report.
+On the merged integration worktree, start in parallel: `verifier` for lint, tests and verification (required local checks and the real user path), `slice-spec-audit` for a blank-slate spec audit, `styla` and `arc` side by side. Each starts fresh with only the frozen spec, repository rules and the immutable candidate identity; never the plan, contracts, author notes or peer findings. After all pass, launch `csa` for the final review. On a failure, record it with `dag_run.py fail` and route the finding as-is to the owning engineer; do not reinterpret or soften it. When `loop_cap` is exceeded the run escalates to HQ/Jarushan; stop and report.
 
 ## 7. publish, ci, handoff
 

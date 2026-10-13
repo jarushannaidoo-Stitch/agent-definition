@@ -32,7 +32,7 @@ The graph lives in [workflow.json](workflow.json). The run folder and its comman
 | lint, tests, verification | `verifier` | `verify` | Running required checks and tracing the user path on the merged worktree |
 | spec_audit | `slice-spec-audit` | `adversarial_audit` | Blank-slate audit of the merged result against the frozen spec |
 | styla | `styla` | `taste` | House style |
-| arc | `reviewer` (Arc) | `adversarial_audit` | Architecture lens, side by side with Styla |
+| arc | `arc` | `adversarial_audit` | Architecture, over-engineering, Arc spec conformance and performance, side by side with Styla; blocking vs non-blocking findings |
 | csa_final | `csa` | `adversarial_audit` | Final architecture review after the gate passes |
 
 Every role runs on the active profile's binding: a per-role override in the profile wins over the capability binding; a strict profile with neither fails closed. Never name or substitute a model in a brief.

@@ -124,6 +124,13 @@ class DagRunTests(unittest.TestCase):
         self.run_node("closeout")
         self.assertEqual(self.state["phase"], "done")
 
+    def test_gate_owners_match_roles(self):
+        owners = {name: node["owner"] for name, node in self.state["nodes"].items()}
+        self.assertEqual(owners["arc"], "arc")
+        self.assertEqual(owners["styla"], "styla")
+        self.assertEqual(owners["csa_final"], "csa")
+        self.assertEqual(self.state["nodes"]["arc"]["needs"], self.state["nodes"]["styla"]["needs"])
+
     def test_cli_status_steer_and_list(self):
         run = self.root / "runs" / "saa-1"
         self.assertEqual(dag_run.main(["steer", str(run), "--message", "pause wp2", "--actor", "main"]), 0)

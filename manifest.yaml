@@ -27,6 +27,7 @@ skills:
   - unslop-code
   - why
 agents:
+  - arc
   - architect
   - cos
   - git
