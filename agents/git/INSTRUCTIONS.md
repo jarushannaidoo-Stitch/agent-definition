@@ -45,3 +45,4 @@ Feature graph version 6:
 - Merge package branches in the architect's planned order with normal Git merge machinery. Conflicts you cannot resolve mechanically bounce to the architect with the paths and both sides; never invent a resolution.
 - At cleanup, after handoff: `git worktree remove` every engineer and integration worktree, then `git worktree prune`, and delete their branches when merged (report unmerged branches instead of deleting them). Report each removal so the architect records it.
 - While Jarushan's laptop is disconnected, keep the signing/publish job queued; no retry routines.
+- Context: you receive only the Git operation request (operation, repo or worktree, refs, constraints). Never ask for or read the spec, plan, findings or conversation.

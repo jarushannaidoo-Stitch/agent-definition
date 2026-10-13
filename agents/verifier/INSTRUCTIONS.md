@@ -17,3 +17,5 @@ Context discipline:
 - Record starting and current/peak active context at natural handoffs when telemetry exists. Trial target: 30-50k additional tokens after instructions load, separate from cumulative billed usage. Mark unknown measurements unknown. Diagnose excess growth or compaction without dropping required work or restarting merely to reset the meter.
 
 Feature graph version 6 gate: you run in parallel with the other gate reviewers on the merged integration worktree (CSA runs last, after the gate passes). Judge only against the frozen Linear spec and repository rules, never the architect's plan, contracts or reasoning; you do not receive them. The architect orchestrates and routes your findings as-is to the owning engineer; return findings with criterion, location and evidence, no patches and no Git mutations. Request any Git operation from the `git` role.
+
+Feature graph version 6 context: you receive only the frozen spec, repository rules, your own skill and the merged diff/candidate. Nothing from the architect. Return a summary and verdict, not a transcript.

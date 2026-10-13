@@ -26,6 +26,7 @@ python3 /path/to/feature-graph/scripts/dag_run.py start|pass RUNS/DAG_ID NODE [-
 python3 /path/to/feature-graph/scripts/dag_run.py fail RUNS/DAG_ID NODE --finding TEXT --to ENG --evidence FILE --actor ARCHITECT
 python3 /path/to/feature-graph/scripts/dag_run.py bounce RUNS/DAG_ID --from ENG --finding TEXT --evidence FILE --actor ARCHITECT
 python3 /path/to/feature-graph/scripts/dag_run.py resolve RUNS/DAG_ID b1 --resolution TEXT --actor ARCHITECT
+python3 /path/to/feature-graph/scripts/dag_run.py brief RUNS/DAG_ID NODE --input spec_full=SPEC --input merged_diff=DIFF [--package wp1] --actor ARCHITECT
 python3 /path/to/feature-graph/scripts/dag_run.py removed RUNS/DAG_ID PATH --branch-deleted yes|no|unmerged --actor ARCHITECT
 ```
 
@@ -44,6 +45,7 @@ python3 /path/to/feature-graph/scripts/dag_run.py removed RUNS/DAG_ID PATH --bra
 - A gate failure creates a bounce routed via the architect to the owning engineer and reopens build and everything after it for that engineer's package. Gate loops past `loop_cap` escalate to HQ/Jarushan.
 - A contract bounce reopens the plan.
 - `pass` requires a saved evidence file.
+- Every non-architect node needs a brief validated against `context.json` before `start`: unknown or unlisted kinds, missing required kinds, architect artifacts for gate roles and git, files outside an engineer's package, hand-supplied bounced findings and oversize inputs are rejected.
 - Worktrees are removed after handoff (or when an escalated run is abandoned). Cleanup passes only when none remain open; closeout requires cleanup `done`.
 
 ## Cleanup states
