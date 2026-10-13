@@ -89,11 +89,20 @@ def register(args):
 
 
 def group_absent(pid):
+    """True only when no process group `pid` exists (ESRCH).
+
+    EPERM means the group exists but cannot be signalled: on macOS a killed,
+    orphaned member stays in the group until launchd reaps it, and a reused
+    pgid may belong to another user. Both are present, never absent, so the
+    shared slot stays held (fail closed) and callers keep waiting for ESRCH.
+    """
     try:
         os.killpg(pid, 0)
-        return False
     except ProcessLookupError:
         return True
+    except PermissionError:
+        return False
+    return False
 
 
 def execute(args):

@@ -165,6 +165,15 @@ class CommandWaitTests(GraphCase):
         self.assertEqual(run_check.execute(self.args)['exit_code'], 0)
         self.release()
 
+    def test_unsignalable_group_is_present_not_absent(self):
+        from unittest import mock
+        with mock.patch.object(run_check.os, 'killpg', side_effect=PermissionError(1, 'Operation not permitted')):
+            self.assertFalse(run_check.group_absent(12345))
+        with mock.patch.object(run_check.os, 'killpg', side_effect=ProcessLookupError(3, 'No such process')):
+            self.assertTrue(run_check.group_absent(12345))
+        with mock.patch.object(run_check.os, 'killpg', return_value=None):
+            self.assertFalse(run_check.group_absent(12345))
+
     def test_detached_descendant_keeps_capacity_until_native_cleanup(self):
         marker = self.root / 'descendant.pid'
         self.args.argv = [sys.executable, '-c',
