@@ -19,6 +19,12 @@ Commands:
   bounce RUN --from ROLE --finding TEXT --evidence PATH --actor ID   (contract wrong)
   resolve RUN BOUNCE_ID --resolution TEXT --actor ID
   removed RUN PATH --branch-deleted yes|no|unmerged --actor ID
+  enqueue-signing RUN --head SHA --pr-intent open|update --actor ID
+                                 machine unavailable: gate-passed DAG -> queued-for-signing
+  signing-queue RUNS             list the durable signing queue in drain order
+  sign-next RUNS --observed-head SHA --actor SIGNER
+                                 Git bot: take the next entry; matching head -> signed,
+                                 mismatch -> bounce to the architect
   brief RUN NODE --input KIND=PATH... [--package WP] --actor ID
                                  validate a subagent brief against context.json
                                  (deny by default); required before start
@@ -221,6 +227,9 @@ def start(state, node, package=None):
     if node == "integrate":
         require(any(w["purpose"] == "integration" and not w["removed"] for w in state["worktrees"].values()),
                 "git must create a fresh integration worktree")
+    if node == "publish":
+        require(state.get("signing", {}).get("state") != "queued",
+                "DAG is queued for signing; the Git bot drains the queue when the machine is back")
     if node == "closeout":
         require(state["cleanup"]["state"] == "done", "closeout requires every worktree removed and pruned")
     item = state["nodes"][node]
@@ -310,12 +319,90 @@ def resolve(state, bounce_id, resolution):
 
 def removed(state, path, branch_deleted):
     require(path in state["worktrees"], f"unregistered worktree {path!r}")
-    require(state["nodes"]["handoff"]["state"] == "pass" or state["escalations"],
-            "worktrees are removed after handoff (or when an escalated run is abandoned)")
+    queued = state.get("signing", {}).get("state") in ("queued", "signed")
+    require(state["nodes"]["handoff"]["state"] == "pass" or state["escalations"] or queued,
+            "worktrees are removed after handoff, while queued for signing, or when an escalated run is abandoned")
     require(branch_deleted in ("yes", "no", "unmerged"), "branch-deleted is yes, no or unmerged")
     state["worktrees"][path].update(removed=True, branch_deleted=branch_deleted, removed_at=now())
     state["cleanup"]["open"] = sorted(p for p, w in state["worktrees"].items() if not w["removed"])
     state["cleanup"]["state"] = "done" if not state["cleanup"]["open"] else "in_progress"
+
+
+QUEUE = "signing-queue.json"
+
+
+def queue_path(runs):
+    return Path(runs) / QUEUE
+
+
+def load_queue(runs):
+    path = queue_path(runs)
+    return json.loads(path.read_text()) if path.exists() else []
+
+
+def save_queue(runs, entries):
+    path = queue_path(runs)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".queue-")
+    with os.fdopen(fd, "w") as handle:
+        json.dump(entries, handle, indent=2)
+        handle.write("\n")
+    os.replace(tmp, path)
+
+
+def drain_order(entries):
+    """Oldest first, but a stacked child never precedes a queued parent branch."""
+    pending = sorted(entries, key=lambda e: (e["enqueued"], e["dag_id"]))
+    ordered = []
+    while pending:
+        queued = {e["branch"] for e in pending}
+        nxt = next((e for e in pending if e.get("stack_parent") not in queued), pending[0])
+        ordered.append(nxt)
+        pending.remove(nxt)
+    return ordered
+
+
+def enqueue_signing(state, runs, head, pr_intent):
+    require(state["nodes"]["csa_final"]["state"] == "pass", "only a gate-passed DAG is queued for signing")
+    require(state["nodes"]["publish"]["state"] == "pending", "publish already started")
+    require(len(head) == 40 and all(c in "0123456789abcdef" for c in head), "head must be an exact commit SHA")
+    require(pr_intent in ("open", "update"), "pr intent is open or update")
+    entries = load_queue(runs)
+    require(all(e["dag_id"] != state["dag_id"] for e in entries), "DAG is already queued for signing")
+    contract = state["contract"]
+    entry = {"dag_id": state["dag_id"], "repo": contract["repo"], "branch": contract["branch"],
+             "head_sha": head, "stack_parent": contract.get("stack_parent"), "pr_intent": pr_intent,
+             "enqueued": now()}
+    entries.append(entry)
+    save_queue(runs, entries)
+    state["signing"] = {"state": "queued", **entry}
+    state["phase"] = "queued-for-signing"
+    return entry
+
+
+def sign_next(runs, observed_head, signer):
+    """Git bot drains one entry: verify the head is unchanged before signing."""
+    entries = load_queue(runs)
+    require(entries, "signing queue is empty")
+    entry = drain_order(entries)[0]
+    run = Path(runs) / entry["dag_id"]
+    state = load(run)
+    entries = [e for e in entries if e["dag_id"] != entry["dag_id"]]
+    if observed_head != entry["head_sha"]:
+        state["signing"].update(state="mismatch", observed_head=observed_head, checked=now(), signer=signer)
+        state["bounces"].append({"id": f"b{len(state['bounces']) + 1}", "node": "publish", "from": "git",
+                                 "to": "architect", "via": "architect", "kind": "signing",
+                                 "finding": f"queued head {entry['head_sha']} but branch is at {observed_head}",
+                                 "evidence": str(queue_path(runs)), "created": now(), "state": "open"})
+        state["phase"] = "bounced"
+        result = "mismatch"
+    else:
+        state["signing"].update(state="signed", signed=now(), signer=signer)
+        state["phase"] = "publish"
+        result = "signed"
+    save(run, state)
+    save_queue(runs, entries)
+    return result, entry
 
 
 def summary(state):
@@ -329,7 +416,8 @@ def summary(state):
         "gate_loops": f"{state['gate_loops']}/{state['loop_cap']}",
         "escalations": state["escalations"],
         "pending_steer": [s for s in state["steer"] if s["state"] == "pending"],
-        "cleanup": state["cleanup"], "updated": state["updated"],
+        "cleanup": state["cleanup"], "signing": state.get("signing", {}).get("state", "none"),
+        "updated": state["updated"],
     }
 
 
@@ -360,6 +448,10 @@ def main(argv=None):
     p.add_argument("--finding", required=True); p.add_argument("--evidence", required=True)
     p.add_argument("--actor", required=True)
     p = cmd("resolve", "run", "bounce_id"); p.add_argument("--resolution", required=True); p.add_argument("--actor", required=True)
+    p = cmd("enqueue-signing", "run"); p.add_argument("--head", required=True)
+    p.add_argument("--pr-intent", required=True); p.add_argument("--actor", required=True)
+    cmd("signing-queue", "runs")
+    p = cmd("sign-next", "runs"); p.add_argument("--observed-head", required=True); p.add_argument("--actor", required=True)
     p = cmd("brief", "run", "node"); p.add_argument("--input", action="append", default=[], required=True)
     p.add_argument("--package"); p.add_argument("--actor", required=True)
     p = cmd("removed", "run", "path"); p.add_argument("--branch-deleted", required=True); p.add_argument("--actor", required=True)
@@ -375,6 +467,14 @@ def main(argv=None):
                 opened = sum(1 for b in s["bounces"] if b["state"] == "open")
                 print(f"{s['dag_id']}\t{s['phase']}\tbounces={opened}\tcleanup={s['cleanup']['state']}\t{s['updated']}")
             return 0
+        if args.command == "signing-queue":
+            for entry in drain_order(load_queue(args.runs)):
+                print(json.dumps(entry))
+            return 0
+        if args.command == "sign-next":
+            result, entry = sign_next(args.runs, args.observed_head, args.actor)
+            print(json.dumps({"result": result, **entry}))
+            return 0 if result == "signed" else 3
         state = load(args.run)
         if args.command == "status":
             data = summary(state)
@@ -407,6 +507,8 @@ def main(argv=None):
                 contract_bounce(state, args.source, args.finding, args.evidence)
             elif args.command == "resolve":
                 resolve(state, args.bounce_id, args.resolution)
+            elif args.command == "enqueue-signing":
+                enqueue_signing(state, Path(args.run).parent, args.head, args.pr_intent)
             elif args.command == "brief":
                 pairs = []
                 for item in args.input:

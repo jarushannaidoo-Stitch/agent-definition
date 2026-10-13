@@ -662,13 +662,21 @@ def render_resolved_sidecar(profile: Profile, pack: Pack, resolved: dict[str, Bi
         for agent in pack.agents:
             b = resolved[agent.id]
             if b.model == INHERIT_MODEL:
-                lines.append(f"  {agent.id}: inherit")
+                # The architect always launches as a cloud agent: no inherit fallback.
+                if agent.id == "architect":
+                    lines.append(f"  {agent.id}: unavailable (orchestrator bound to {INHERIT_MODEL}; "
+                                 "bind a cloud-agent model, then re-export)")
+                else:
+                    lines.append(f"  {agent.id}: inherit")
                 continue
             parts = [f"model={b.model}"]
             if b.reasoning:
                 parts.append(f"{params.get(b.model, 'reasoning')}={b.reasoning}")
             parts.append(f"fast={'true' if b.service_tier == 'fast' else 'false'}")
             lines.append(f"  {agent.id}: " + " ".join(parts))
+        if profile.harness == "grokbot":
+            lines.append("signing: local (persistent Git bot on Jarushan's Mac signs, pushes with lease, "
+                         "opens/updates PR; cloud-agent commits are unsigned; queued while the Mac is away)")
     return "\n".join(lines) + "\n"
 
 

@@ -14,8 +14,9 @@ model_discovery:
   - kind: inherit
   # Grok Bot cloud-agent models (verified catalog, source: Grok Bot cloud-agent
   # models). Engineers, integrator, git and reviewers run as cloud agents on
-  # these; the persistent architect bot inherits Grok Bot's model unless it is
-  # launched as a cloud agent, then it uses the orchestrator binding.
+  # these. Every DAG role, including the architect and in-DAG git work, is a
+  # cloud agent (no inherit fallback). Cloud commits are unsigned; the
+  # persistent Git bot on Jarushan's Mac signs locally (signing queue when away).
   # reasoning_param keeps each model's own parameter name (effort or reasoning);
   # service tier "fast" means fast=true, omitted means fast=false.
   - kind: static

@@ -229,6 +229,79 @@ class DagRunTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "handoff cap"):
             self.brief("build", "wp1")
 
+    def gate_passed(self, run_id="saa-1", stack_parent=None, branch=None):
+        if run_id != "saa-1":
+            contract = {**self.contract, "branch": branch or f"jarushan/{run_id}", "stack_parent": stack_parent}
+            self.state = dag_run.initialize(self.root / "runs", run_id, contract, "architect-1")
+            self.run_dir = self.root / "runs" / run_id
+        elif stack_parent or branch:
+            self.state["contract"].update(stack_parent=stack_parent, branch=branch or self.contract["branch"])
+        self.through_integrate()
+        for node in GATES + ["csa_final"]:
+            self.run_node(node)
+        return self.state
+
+    def enqueue(self, run_id, head, **kw):
+        state = self.gate_passed(run_id, **kw)
+        dag_run.enqueue_signing(state, self.root / "runs", head, "open")
+        dag_run.save(self.run_dir, state)
+        return state
+
+    def test_queued_for_signing_blocks_publish_but_allows_cleanup(self):
+        state = self.enqueue("saa-1", "a" * 40)
+        self.assertEqual(state["phase"], "queued-for-signing")
+        queue = json.loads((self.root / "runs" / "signing-queue.json").read_text())
+        self.assertEqual([e["dag_id"] for e in queue], ["saa-1"])
+        self.assertEqual(set(queue[0]), {"dag_id", "repo", "branch", "head_sha", "stack_parent", "pr_intent", "enqueued"})
+        self.brief("publish")
+        with self.assertRaisesRegex(ValueError, "queued for signing"):
+            dag_run.start(state, "publish")
+        for path in ("/wt/wp1", "/wt/wp2", "/wt/int"):
+            dag_run.removed(state, path, "no")
+        self.assertEqual(state["cleanup"]["state"], "done")
+        with self.assertRaisesRegex(ValueError, "already queued"):
+            dag_run.enqueue_signing(state, self.root / "runs", "a" * 40, "open")
+
+    def test_only_gate_passed_dags_queue(self):
+        self.through_integrate()
+        with self.assertRaisesRegex(ValueError, "gate-passed"):
+            dag_run.enqueue_signing(self.state, self.root / "runs", "a" * 40, "open")
+
+    def test_drain_is_oldest_first_and_respects_stack_order(self):
+        self.enqueue("saa-1", "c" * 40, stack_parent="jarushan/parent", branch="jarushan/child")
+        self.enqueue("parent", "b" * 40, branch="jarushan/parent")
+        self.enqueue("other", "d" * 40, branch="jarushan/other")
+        order = [e["dag_id"] for e in dag_run.drain_order(dag_run.load_queue(self.root / "runs"))]
+        self.assertEqual(order, ["parent", "saa-1", "other"])
+        result, entry = dag_run.sign_next(self.root / "runs", "b" * 40, "git-bot")
+        self.assertEqual((result, entry["dag_id"]), ("signed", "parent"))
+        signed = dag_run.load(self.root / "runs" / "parent")
+        self.assertEqual(signed["signing"]["state"], "signed")
+        self.assertEqual(signed["phase"], "publish")
+        remaining = [e["dag_id"] for e in dag_run.load_queue(self.root / "runs")]
+        self.assertEqual(remaining, ["saa-1", "other"])
+
+    def test_head_mismatch_bounces_to_architect(self):
+        self.enqueue("saa-1", "a" * 40)
+        result, _ = dag_run.sign_next(self.root / "runs", "e" * 40, "git-bot")
+        self.assertEqual(result, "mismatch")
+        state = dag_run.load(self.run_dir)
+        self.assertEqual(state["signing"]["state"], "mismatch")
+        self.assertEqual(state["bounces"][-1]["to"], "architect")
+        self.assertEqual(state["phase"], "bounced")
+        self.assertEqual(dag_run.load_queue(self.root / "runs"), [])
+        self.brief("publish")
+        with self.assertRaisesRegex(ValueError, "open bounce"):
+            dag_run.start(state, "publish")
+
+    def test_cli_sign_next_exit_codes(self):
+        self.enqueue("saa-1", "a" * 40)
+        self.assertEqual(dag_run.main(["signing-queue", str(self.root / "runs")]), 0)
+        self.assertEqual(dag_run.main(["sign-next", str(self.root / "runs"), "--observed-head", "a" * 40,
+                                       "--actor", "git-bot"]), 0)
+        self.assertEqual(dag_run.main(["sign-next", str(self.root / "runs"), "--observed-head", "a" * 40,
+                                       "--actor", "git-bot"]), 2)
+
     def test_gate_owners_match_roles(self):
         owners = {name: node["owner"] for name, node in self.state["nodes"].items()}
         self.assertEqual(owners["arc"], "arc")

@@ -48,6 +48,18 @@ python3 /path/to/feature-graph/scripts/dag_run.py removed RUNS/DAG_ID PATH --bra
 - Every non-architect node needs a brief validated against `context.json` before `start`: unknown or unlisted kinds, missing required kinds, architect artifacts for gate roles and git, files outside an engineer's package, hand-supplied bounced findings and oversize inputs are rejected.
 - Worktrees are removed after handoff (or when an escalated run is abandoned). Cleanup passes only when none remain open; closeout requires cleanup `done`.
 
+## Signing queue
+
+Signing and publication happen on Jarushan's machine. When it is unavailable after the gate passes, the architect runs `enqueue-signing RUN --head SHA --pr-intent open|update`: the DAG enters phase `queued-for-signing` and an entry (`dag_id`, `repo`, `branch`, `head_sha`, `stack_parent`, `pr_intent`, `enqueued`) is appended to the durable `RUNS/signing-queue.json`. Publish cannot start while queued. No retry routines or polling.
+
+When the machine is back, the local Git signer drains the queue one entry at a time with `sign-next RUNS --observed-head SHA --actor SIGNER`, in `signing-queue` order: a stacked child never precedes its queued parent branch, otherwise oldest first. It reads the branch head first; if it equals the queued `head_sha` the run is marked `signed` (phase `publish`) and the signer re-signs, pushes with lease against that exact head, opens or updates the PR, then CI runs. A different head removes the entry, marks `mismatch` and bounces to the architect (exit 3). Worktree cleanup still proceeds while queued; the queued branch persists on the remote. The slice is done only when signed and CI green.
+
+```bash
+python3 /path/to/feature-graph/scripts/dag_run.py enqueue-signing RUNS/DAG_ID --head SHA --pr-intent open --actor ARCHITECT
+python3 /path/to/feature-graph/scripts/dag_run.py signing-queue RUNS
+python3 /path/to/feature-graph/scripts/dag_run.py sign-next RUNS --observed-head SHA --actor GIT-SIGNER
+```
+
 ## Cleanup states
 
 `not_started` -> `in_progress` (some removed) -> `done` (every engineer and integration worktree removed and pruned, merged branches deleted). `branch-deleted: unmerged` records a branch kept because it was not merged; report it in handoff.

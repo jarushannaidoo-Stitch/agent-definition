@@ -14,7 +14,7 @@
     "styla": {"owner": "styla", "needs": ["integrate"], "gate": true, "parallel": true},
     "arc": {"owner": "arc", "needs": ["integrate"], "gate": true, "parallel": true},
     "csa_final": {"owner": "csa", "needs": ["lint", "tests", "verification", "spec_audit", "styla", "arc"], "gate": true},
-    "publish": {"owner": "git", "needs": ["csa_final"]},
+    "publish": {"owner": "git", "needs": ["csa_final"], "local_signing": true, "description": "Local signing on Jarushan's machine (re-sign unsigned cloud commits), push with lease, open or update the stacked draft PR. Queued via runs/signing-queue.json while the machine is unavailable."},
     "ci": {"owner": "git", "needs": ["publish"]},
     "handoff": {"owner": "architect", "needs": ["ci"]},
     "cleanup": {"owner": "git", "needs": ["handoff"]},

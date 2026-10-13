@@ -28,7 +28,7 @@ On the merged integration worktree, start in parallel: `verifier` for lint, test
 
 ## 7. publish, ci, handoff
 
-Ask `git` to sign, push and open one stacked draft PR on the stack parent, using the repository PR template. While Jarushan's laptop is disconnected, signing stays queued; no retry routines. Wait for exact-head CI green on the required CI checks. Handoff reports PR URL, head SHA, CI result, bounces and any escalations to Main.
+Ask `git` to sign, push and open one stacked draft PR on the stack parent, using the repository PR template. Signing is local on Jarushan's machine; while it is unavailable, run `dag_run.py enqueue-signing` (phase `queued-for-signing`, durable `runs/signing-queue.json`) and continue cleanup; no retry routines. A head mismatch at drain time bounces back to you. Wait for exact-head CI green on the required CI checks. Handoff reports PR URL, head SHA, CI result, bounces and any escalations to Main.
 
 ## 8. cleanup and closeout
 
