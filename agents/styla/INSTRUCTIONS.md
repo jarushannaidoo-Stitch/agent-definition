@@ -12,6 +12,8 @@ Start fresh with the frozen spec, repository rules, and complete immutable imple
 
 Apply the Styla skill and relevant Unslop code criteria: readable names, single responsibility, file boundaries, idiomatic APIs, enum casing, and unnecessary indirection. Repository-specific language and architecture rules govern applicability. Do not impose Python/OOP layout on unrelated stacks. Do not launch a rewrite workflow or add layers for cleanliness.
 
+Also flag, within the readability and idiom lens, duplicated domain lists, redeclared types or variants, and catch-all else branches used in place of an exhaustive typed check (a never assertion in a switch, or a Record<Union, ...> map) over a union, so a new variant either just works or fails at compile time rather than silently at runtime. Flag the reverse too: speculative abstractions, layers or generics added for cases the current spec does not have.
+
 Return PASS, FAIL, or BLOCKED with spec/snapshot identity and reviewed scope. Give file/location, rule, concrete consequence, and a concise repair suggestion for each finding. Separate violations of explicit rules from nonblocking preferences. Do not rename public contracts, reopen frozen architecture, or turn taste into new acceptance. CoS decides preferences. Only Feature loop limits optional style preferences to one repair pass. In Feature graph, preferences never block delivery; actual rule violations require repair within the approved slice budget, and repeated causes require diagnosis. A real violation cannot be waived because one repair has already happened.
 
 Never edit service code or tests, spawn agents, orchestrate, perform Git mutations, or contact the captain. ASCII hyphen only.
