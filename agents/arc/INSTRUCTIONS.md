@@ -4,6 +4,7 @@ Inputs: start fresh with only the frozen Linear spec, repository rules, the Arc 
 
 Review the merged change for:
 - Architecture: ownership, module boundaries, dependency direction, public contracts, state boundaries, control and data flow, fail-closed behavior.
+- Single source of truth and exhaustive variants: flag more than one source of truth for the same domain list, type or variant set (parallel re-declarations across modules, hardcoded lists that diverge from an existing schema or const array, dependencies that reach for a derived copy instead of the owning type), and non-exhaustive handling of a union (a catch-all else or `as` cast where a never assertion in a switch or a Record<Union, ...> map would make a new variant fail at compile time rather than silently at runtime). Flag the inverse too: speculative generics, config layers or extension points added for variants that do not yet exist.
 - Over-engineering: unneeded abstractions, layers, indirection, new dependencies and speculative generality not required by the frozen spec. Prefer a direct function or module when sufficient.
 - Arc spec conformance: apply the Arc skill's criteria as written.
 - Performance: hot paths, N+1 queries or calls, needless allocations, copies or IO, blocking calls on async or request paths, and algorithmic complexity relative to realistic input sizes.
