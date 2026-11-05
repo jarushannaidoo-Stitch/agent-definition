@@ -173,9 +173,9 @@ Main defaults are owned separately by the `main:` block of `profiles/codex.yaml`
 
 ## Codex context window
 
-The requested context setting for new main agents and subagents is 1,000,000 tokens. The canonical settings fragment is `guidance/codex-context.toml`; synchronize its two top-level keys into `~/.codex/config.toml`, preserving all other settings. Custom agents inherit these keys from their parent unless an explicit session or role override changes them. Do not change model, reasoning, sandbox or service-tier pins when applying this fragment.
+Use the selected model and Codex client defaults for context size and automatic compaction. Do not set `model_context_window` or `model_auto_compact_token_limit` in `~/.codex/config.toml` unless Jarushan explicitly requests another override.
 
-Automatic compaction is set to 800,000 tokens. On 1 October 2026, the installed Codex catalog advertises a maximum context of 872,000 tokens for the selected GPT-6.1 Sol, GPT-6 Astra and GPT-5.6 Sol models. The requested setting does not increase a model or service limit, and a literal 1,000,000-token usable prompt is not verified. Preserve model limits and compaction headroom. Use newly started sessions to pick up the settings; do not interrupt running agents merely to apply them.
+The canonical `guidance/codex-context.toml` fragment is intentionally empty. New sessions pick up default behavior; already-running sessions retain the settings they started with. Resetting context defaults must not change model, reasoning, sandbox or service-tier pins. The exporter only writes and checks currently owned keys and never deletes retired ones, so when resetting from the previous 1M/800k override remove `model_context_window` and `model_auto_compact_token_limit` from `~/.codex/config.toml` by hand.
 
 ## Codex skill install path
 
