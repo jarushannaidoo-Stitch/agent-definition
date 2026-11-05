@@ -175,7 +175,7 @@ Main defaults are owned separately by the `main:` block of `profiles/codex.yaml`
 
 Use the selected model and Codex client defaults for context size and automatic compaction. Do not set `model_context_window` or `model_auto_compact_token_limit` in `~/.codex/config.toml` unless Jarushan explicitly requests another override.
 
-The canonical `guidance/codex-context.toml` fragment is intentionally empty. New sessions pick up default behavior; already-running sessions retain the settings they started with. Resetting context defaults must not change model, reasoning, sandbox or service-tier pins.
+The canonical `guidance/codex-context.toml` fragment is intentionally empty. New sessions pick up default behavior; already-running sessions retain the settings they started with. Resetting context defaults must not change model, reasoning, sandbox or service-tier pins. The exporter only writes and checks currently owned keys and never deletes retired ones, so when resetting from the previous 1M/800k override remove `model_context_window` and `model_auto_compact_token_limit` from `~/.codex/config.toml` by hand.
 
 ## Codex skill install path
 
