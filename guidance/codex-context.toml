@@ -1,2 +1,2 @@
-model_context_window = 1000000
-model_auto_compact_token_limit = 800000
+# Intentionally empty. Codex uses the selected model and client defaults for
+# context size and automatic compaction.
