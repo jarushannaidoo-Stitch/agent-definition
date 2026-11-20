@@ -51,6 +51,8 @@ Every subagent brief is validated by `dag_run.py brief` against [context.json](c
 
 Bounced findings are capped at 20 entries and 8 KiB after deduplication; over the cap the run escalates instead of truncating. A reopened node needs a fresh brief.
 
+For a repair brief, the architect selects the current finding IDs. Run history stays in the guard; CSA receives only its allowed review inputs. See [repair briefs](references/dag-runs.md#repair-briefs).
+
 ## Main entry (non-blocking)
 
 1. Confirm implementation authority, the frozen Linear spec revision, exact baseline, branch name from Linear and the stack parent. Return unresolved product decisions to Jarushan. Approval to implement is not approval to invent requirements.

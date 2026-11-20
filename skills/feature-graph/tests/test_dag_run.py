@@ -1,4 +1,5 @@
 import json
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -37,10 +38,10 @@ class DagRunTests(unittest.TestCase):
                      "worktree_list", "git_request", "transcript"):
             (self.inputs / f"{kind}.md").write_text(f"{kind}\n")
 
-    def brief(self, node, package=None, kinds=None, extra=()):
+    def brief(self, node, package=None, kinds=None, extra=(), finding_ids=None):
         role = self.state["nodes"][node]["owner"]
         pairs = [(k, self.inputs / f"{k}.md") for k in (kinds or ROLE_INPUTS.get(role, []))] + list(extra)
-        return dag_run.make_brief(self.state, self.run_dir, node, pairs, package)
+        return dag_run.make_brief(self.state, self.run_dir, node, pairs, package, finding_ids=finding_ids)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -215,7 +216,7 @@ class DagRunTests(unittest.TestCase):
         dag_run.failed(self.state, "lint", "eng-2 only", "eng-2", self.evidence)
         self.state["bounces"][-1]["state"] = "resolved"
         self.state["nodes"]["build"]["state"] = "pending"
-        brief = self.brief("build", "wp1")
+        brief = self.brief("build", "wp1", finding_ids=["b1", "b2"])
         record = next(r for r in brief["inputs"] if r["kind"] == "bounced_findings")
         findings = json.loads(Path(record["path"]).read_text())
         self.assertEqual([f["finding"] for f in findings], ["Name says Mgr; rule 3"])
@@ -227,7 +228,66 @@ class DagRunTests(unittest.TestCase):
                                           "evidence": "e", "state": "resolved"})
         self.state["nodes"]["build"]["state"] = "pending"
         with self.assertRaisesRegex(ValueError, "handoff cap"):
+            self.brief("build", "wp1", finding_ids=[f"x{i}" for i in range(21)])
+
+    def test_repair_brief_routes_only_selected_findings_and_keeps_history(self):
+        self.through_integrate()
+        history = self.state["bounces"]
+        history.extend({"id": f"b{i}", "node": "styla", "to": "eng-1", "finding": f"old {i}",
+                        "evidence": "old.md", "state": "resolved"} for i in range(1, 22))
+        self.brief("arc")
+        dag_run.start(self.state, "arc")
+        finding = dag_run.failed(self.state, "arc", "current repair", "eng-1", self.evidence)
+        dag_run.resolve(self.state, finding["id"], "authorize repair")
+        frozen_history = json.dumps(history)
+        dag_run.save(self.run_dir, self.state)
+        command = [sys.executable, "-B", dag_run.__file__, "brief", str(self.run_dir), "build",
+                   "--package", "wp1", "--actor", "architect-1",
+                   *[arg for kind in ROLE_INPUTS["senior_engineer"]
+                     for arg in ("--input", f"{kind}={self.inputs / (kind + '.md')}")]]
+        result = subprocess.run([*command, "--findings", finding["id"]], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        saved = dag_run.load(self.run_dir)
+        brief = saved["nodes"]["build"]["briefs"]["build:wp1"]
+        record = next(r for r in brief["inputs"] if r["kind"] == "bounced_findings")
+        self.assertEqual(json.loads(Path(record["path"]).read_text()), [{
+            "id": finding["id"], "node": "arc", "finding": "current repair", "evidence": str(self.evidence),
+        }])
+        self.assertEqual(saved["bounces"], json.loads(frozen_history))
+        self.assertEqual(brief["finding_ids"], [finding["id"]])
+        dag_run.start(saved, "build", "wp1")
+        self.assertEqual(saved["packages"]["wp1"]["state"], "running")
+
+    def test_selection_is_explicit_and_limited_to_owner(self):
+        self.through_integrate()
+        self.brief("arc")
+        dag_run.start(self.state, "arc")
+        finding = dag_run.failed(self.state, "arc", "engineer 1 only", "eng-1", self.evidence)
+        with self.assertRaisesRegex(ValueError, "select.*--findings"):
             self.brief("build", "wp1")
+        with self.assertRaisesRegex(ValueError, "open findings"):
+            self.brief("build", "wp1", finding_ids=[])
+        with self.assertRaisesRegex(ValueError, "not assigned"):
+            self.brief("build", "wp2", finding_ids=[finding["id"]])
+        with self.assertRaisesRegex(ValueError, "unknown finding"):
+            self.brief("build", "wp1", finding_ids=["missing"])
+        with self.assertRaisesRegex(ValueError, "only engineer"):
+            self.brief("csa_final", finding_ids=[finding["id"]])
+        csa = self.brief("csa_final")
+        self.assertEqual({record["kind"] for record in csa["inputs"]}, {"spec_full", "merged_diff"})
+        dag_run.resolve(self.state, finding["id"], "authorize repair")
+        self.assertNotIn("bounced_findings", [r["kind"] for r in self.brief("build", "wp1", finding_ids=[])["inputs"]])
+
+    def test_saved_run_can_keep_legacy_brief_or_explicitly_select(self):
+        self.through_integrate()
+        self.state["schema"] = 1
+        self.brief("arc")
+        dag_run.start(self.state, "arc")
+        finding = dag_run.failed(self.state, "arc", "saved repair", "eng-1", self.evidence)
+        dag_run.resolve(self.state, finding["id"], "authorize repair")
+        legacy = self.brief("build", "wp1")
+        selected = self.brief("build", "wp1", finding_ids=[finding["id"]])
+        self.assertEqual(legacy["inputs"][-1]["sha256"], selected["inputs"][-1]["sha256"])
 
     def gate_passed(self, run_id="saa-1", stack_parent=None, branch=None):
         if run_id != "saa-1":
