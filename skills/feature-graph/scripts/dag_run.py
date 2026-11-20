@@ -25,7 +25,7 @@ Commands:
   sign-next RUNS --observed-head SHA --actor SIGNER
                                  Git bot: take the next entry; matching head -> signed,
                                  mismatch -> bounce to the architect
-  brief RUN NODE --input KIND=PATH... [--package WP] --actor ID
+  brief RUN NODE --input KIND=PATH... [--package WP] [--findings ID...] --actor ID
                                  validate a subagent brief against context.json
                                  (deny by default); required before start
 """
@@ -80,7 +80,7 @@ def initialize(runs, dag_id, contract, actor):
     run.mkdir(parents=True, exist_ok=True)
     definition = json.loads(WORKFLOW.read_text())
     state = {
-        "schema": 1, "version": definition["version"], "dag_id": dag_id, "architect": actor,
+        "schema": 2, "version": definition["version"], "dag_id": dag_id, "architect": actor,
         "created": now(), "phase": "freeze_check", "contract": contract,
         "loop_cap": int(contract.get("loop_cap", definition["loop_cap"])), "gate_loops": 0,
         "nodes": {name: {"owner": spec["owner"], "needs": spec["needs"], "state": "pending", "attempts": 0}
@@ -141,12 +141,25 @@ def brief_key(node, package):
     return f"{node}:{package}" if package else node
 
 
-def engineer_findings(state, engineer, limit, max_bytes):
-    """Bounced findings addressed to one engineer, verbatim, deduplicated, capped."""
+def engineer_findings(state, engineer, limit, max_bytes, finding_ids=None):
+    """Validate the architect's selection and copy only those findings into the brief."""
+    findings = {bounce["id"]: bounce for bounce in state["bounces"]}
+    assigned = [bounce for bounce in findings.values() if bounce["to"] in (engineer, "all")]
+    if finding_ids is None:
+        require(state["schema"] == 1 or not assigned,
+                "select current repair findings for this engineer with --findings")
+        selected = assigned
+    else:
+        require(finding_ids or not any(bounce["state"] == "open" for bounce in assigned),
+                "an empty selection cannot omit open findings for this engineer")
+        selected = []
+        for finding_id in finding_ids:
+            require(finding_id in findings, f"unknown finding {finding_id}")
+            bounce = findings[finding_id]
+            require(bounce["to"] in (engineer, "all"), f"finding {finding_id} is not assigned to {engineer}")
+            selected.append(bounce)
     seen, out = set(), []
-    for bounce in state["bounces"]:
-        if bounce["to"] not in (engineer, "all"):
-            continue
+    for bounce in selected:
         key = (bounce["node"], bounce["finding"].strip())
         if key in seen:
             continue
@@ -160,7 +173,7 @@ def engineer_findings(state, engineer, limit, max_bytes):
     return out, data
 
 
-def make_brief(state, run, node, inputs, package=None):
+def make_brief(state, run, node, inputs, package=None, *, finding_ids=None):
     """Validate a subagent brief against context.json. Deny by default, fail closed."""
     require(node in state["nodes"], f"unknown node {node!r}")
     ctx = context()
@@ -173,6 +186,7 @@ def make_brief(state, run, node, inputs, package=None):
         pkg = state["packages"][package]
     else:
         require(package is None, f"{role} briefs are not per package")
+        require(finding_ids is None, "only engineer briefs may select repair findings")
     run = Path(run).resolve()
     records, total = [], 0
     for kind, raw in inputs:
@@ -195,19 +209,23 @@ def make_brief(state, run, node, inputs, package=None):
                         "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
     if pkg is not None:
         findings, data = engineer_findings(state, pkg["engineer"], ctx["max_findings"],
-                                           ctx["kinds"]["bounced_findings"]["max_bytes"])
+                                           ctx["kinds"]["bounced_findings"]["max_bytes"], finding_ids)
         if findings:
-            out = run / "briefs" / f"{node}-{package}-findings.json"
+            digest = hashlib.sha256(data).hexdigest()
+            name = f"{node}-{package}-findings.json" if finding_ids is None else f"{node}-{package}-findings-{digest}.json"
+            out = run / "briefs" / name
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_bytes(data)
             total += len(data)
             records.append({"kind": "bounced_findings", "path": str(out), "bytes": len(data),
-                            "sha256": hashlib.sha256(data).hexdigest(), "count": len(findings)})
+                            "sha256": digest, "count": len(findings)})
     kinds = {r["kind"] for r in records}
     missing = [k for k in rule.get("required", []) if k not in kinds]
     require(not missing, f"{role} brief is missing required context {missing}")
     require(total <= rule["max_total_bytes"], f"{role} brief is {total} bytes; cap is {rule['max_total_bytes']}")
     brief = {"role": role, "inputs": records, "bytes": total, "created": now()}
+    if finding_ids is not None:
+        brief["finding_ids"] = list(finding_ids)
     state["nodes"][node].setdefault("briefs", {})[brief_key(node, package)] = brief
     return brief
 
@@ -454,6 +472,7 @@ def main(argv=None):
     p = cmd("sign-next", "runs"); p.add_argument("--observed-head", required=True); p.add_argument("--actor", required=True)
     p = cmd("brief", "run", "node"); p.add_argument("--input", action="append", default=[], required=True)
     p.add_argument("--package"); p.add_argument("--actor", required=True)
+    p.add_argument("--findings", nargs="*", metavar="ID", help="explicit current repair finding IDs for a build brief")
     p = cmd("removed", "run", "path"); p.add_argument("--branch-deleted", required=True); p.add_argument("--actor", required=True)
     args = parser.parse_args(argv)
     try:
@@ -514,7 +533,7 @@ def main(argv=None):
                 for item in args.input:
                     require("=" in item, f"--input expects KIND=PATH, got {item!r}")
                     pairs.append(tuple(item.split("=", 1)))
-                brief = make_brief(state, args.run, args.node, pairs, args.package)
+                brief = make_brief(state, args.run, args.node, pairs, args.package, finding_ids=args.findings)
                 save(args.run, state)
                 print(json.dumps({"node": args.node, "package": args.package, "role": brief["role"],
                                   "bytes": brief["bytes"], "inputs": [r["kind"] for r in brief["inputs"]]}))

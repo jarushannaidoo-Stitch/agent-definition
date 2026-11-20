@@ -48,6 +48,12 @@ python3 /path/to/feature-graph/scripts/dag_run.py removed RUNS/DAG_ID PATH --bra
 - Every non-architect node needs a brief validated against `context.json` before `start`: unknown or unlisted kinds, missing required kinds, architect artifacts for gate roles and git, files outside an engineer's package, hand-supplied bounced findings and oversize inputs are rejected.
 - Worktrees are removed after handoff (or when an escalated run is abandoned). Cleanup passes only when none remain open; closeout requires cleanup `done`.
 
+## Repair briefs
+
+Add `--findings b12 b15` to a `brief RUN build --package WP` command to route only those recorded findings assigned to the engineer or to `all`. The guard preserves their text and evidence paths, applies the existing count and byte caps to the selection, and records the selected IDs with the brief. Unknown or misrouted IDs fail validation. The full finding history stays in `status.json`.
+
+For new runs, once the engineer has an assigned finding, supply an explicit selection on each brief. Use `--findings` without IDs only when no repair applies and no finding for the engineer is open. Select findings still pending work even if `resolve` already authorized their repair. Saved schema-1 runs keep their existing defaults and can opt in on each brief with the same flag. CSA and the other independent gates cannot select or receive repair findings.
+
 ## Signing queue
 
 Signing and publication happen on Jarushan's machine. When it is unavailable after the gate passes, the architect runs `enqueue-signing RUN --head SHA --pr-intent open|update`: the DAG enters phase `queued-for-signing` and an entry (`dag_id`, `repo`, `branch`, `head_sha`, `stack_parent`, `pr_intent`, `enqueued`) is appended to the durable `RUNS/signing-queue.json`. Publish cannot start while queued. No retry routines or polling.
